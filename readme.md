@@ -1,7 +1,6 @@
 # inkBOT
 A simple discord bot
 
----
 
 ## Functions
 Includes a version of FreeGameFormat recreated in Python as well as a chatbot and image generator using OpenAI's API.
@@ -12,11 +11,17 @@ Download and extract the zip file. Add your own API keys to values.env. In value
 
 Any temporarily free games can be input by creating a file freegames.txt in the same directory as main.py. Use the following format:
 Store Name 1:
+
 GameName: GameURL
+
 GameName: GameURL
+
 ...
+
 Store Name 2:
+
 ...
+
 
 ## Usage
 
