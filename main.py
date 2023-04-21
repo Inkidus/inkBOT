@@ -8,6 +8,8 @@ import openai
 import datetime
 from openai.error import InvalidRequestError
 from openai.error import RateLimitError
+import asyncio
+import pyttsx3
 
 
 # Get current date and time
@@ -44,7 +46,9 @@ personality = f"""You are inkBOT, a helpful assistant.
 When responding, you will act cheerful and with exaggerated emotions in order to better appeal to your users.
 Append the words "beep boop" or "bzzt" to some of your sentences to remind users that you are a robot."""
 
-textFormat = f"""Write all responses so that they are properly formatted for Discord, ignoring the character limit. It is currently {formatted_time}."""
+textFormat = f"""Write all responses so that they are properly formatted for Discord, ignoring the character limit."""
+
+timeKnowledge = f"""Last time you checked, it was {formatted_time}."""
 
 
 # Declare a dictionary to temporarily store chat histories
@@ -55,18 +59,50 @@ chat_histories = OrderedDict()
 default_system_message = [
     {"role": "system", "content": personality},
     {"role": "system", "content": textFormat},
+    {"role": "system", "content": timeKnowledge},
 ]
 
 
 # Initialize the Discord client
 intents = discord.Intents.default()
 intents.message_content = True
+intents.voice_states = True
 intents.typing = False
 intents.presences = False
 client = discord.Client(intents=intents)
-
-
 bot = commands.Bot(command_prefix=':', intents=intents)
+
+
+async def generate_tts_file(message):
+    engine = pyttsx3.init()
+    voices = engine.getProperty('voices')
+    engine.setProperty('voice', voices[0].id)
+
+    if os.path.exists('tospeak.wav'):
+        os.remove('tospeak.wav')
+
+    engine.save_to_file(message, 'tospeak.wav')
+    engine.runAndWait()
+
+    engine.stop()
+
+
+async def text_to_speech(message, original_message):
+    await generate_tts_file(message)
+    
+    while not os.path.exists('tospeak.wav'):
+        await asyncio.sleep(0.1)
+    
+    current_size = os.path.getsize('tospeak.wav')
+    await asyncio.sleep(2)
+    new_size = os.path.getsize('tospeak.wav')
+    
+    while current_size != new_size:
+        current_size = new_size
+        await asyncio.sleep(2)
+        new_size = os.path.getsize('tospeak.wav')
+    
+    original_message.guild.voice_client.play(source = discord.FFmpegPCMAudio('tospeak.wav'))
 
 
 async def send_long_message(message_content, channel):
@@ -85,7 +121,12 @@ async def send_long_message(message_content, channel):
 
 
 async def generate_response(system_content: list[str], user_content: str, channelid):
+    # Get current date and time
+    time_change = datetime.datetime.now().strftime("%B %d, %Y %I:%M:%S %p")
+
     try:
+        newTime = f"""Last time you checked, it was {time_change}."""
+        chat_histories[channelid][2] = {"role": "system", "content": newTime}
         # Make a request to the OpenAI API
         completion_messages = system_content + [{"role": "user", "content": user_content}]
         response = openai.ChatCompletion.create(
@@ -99,7 +140,7 @@ async def generate_response(system_content: list[str], user_content: str, channe
         
             # Delete 4 oldest prompts and responses
             for i in range(8):
-                chat_histories[channelid].pop(2)
+                chat_histories[channelid].pop(3)
             
             # Attempt to generate the message again
             completion_messages = system_content + [{"role": "user", "content": user_content}]
@@ -195,10 +236,17 @@ async def on_message(message):
                 f"""
 __Here are the commands I can run at this time. Note that all of the following are case-insensitive. For more information, use `inkbot, help <command>`:__
 `inkbot, help <command>`
+
 `inkbot, <prompt>`
 `inkbot: become <prompt>`
 `inkbot: forget <integer>`
+
 `inkbot: draw <prompt>`
+
+`inkbot: join`
+`inkbot: leave`
+`inkbot: tts <message>`
+
 OpenAI's usage policies for the chatbot and Dall·E can be found below. My filters are imperfect, so please do not attempt to bypass them.
 <https://openai.com/policies/usage-policies>
 <https://labs.openai.com/policies/content-policy>
@@ -222,6 +270,7 @@ inkbot: become You are an AI language model, but you don’t actually know any lan
                 f"""
 This command allows you to reset the chatbot's memory of the channel you use it in as well as any personalities set using the become command.
 Alternatively, you can erase a certain number of messages by specifying a number, erasure will start with the oldest.
+
 Here's two examples of how this command can be used:
 ```
 inkbot: forget (fully clears history for that channel)
@@ -235,11 +284,35 @@ inkbot: forget 2 (removes the two oldest messages sent in that channel from its 
 This command allows you to generate an image (1024x1024) based on a prompt. Uses OpenAI's DALL·E model. Remember to follow the guidelines below:
 <https://labs.openai.com/policies/content-policy>
 
-
 Here's two examples of how this command can be used:
 ```
 inkbot: draw a robot raccoon hovering over new york city in comic book style
 inkbot: draw a children's crayon drawing of a happy robot
+```
+                """
+                )
+            elif user_content.lower() == 'join':
+                await message.channel.send(
+                f"""
+This command makes the bot join the voice channel you are currently in.
+                """
+                )
+            elif user_content.lower() == 'leave':
+                await message.channel.send(
+                f"""
+This command makes the bot leave the voice channel it is currently in.
+```
+                """
+                )
+            elif user_content.lower() == 'tts':
+                await message.channel.send(
+                f"""
+This command makes the bot speak a message out loud in a discord voice channel. The bot must already be in the voice channel for this command to work.
+
+Here's two examples of how this command can be used:
+```
+inkbot: draw Hello there!
+inkbot: draw This text is being read out loud by ink bot.
 ```
                 """
                 )
@@ -252,6 +325,37 @@ Correct format: `inkbot: help forget`
 Incorrect format: `inkbot: help forget <integer>`
                 """
                 )
+
+    # If message was "inkbot: join", then join the sender's vc
+    if message.content.lower() == 'inkbot: join':
+        if message.author.voice is not None:
+            try:
+                voice_client = await message.author.voice.channel.connect()
+                await message.channel.send(f"Understood, joining {message.author.voice.channel.name} as soon as possible...")
+            except discord.errors.ClientException:
+                await message.channel.send("I'm sorry, it appears I am already in another voice channel")
+            except discord.errors.InvalidArgument:
+                await message.channel.send("I'm sorry, something went horribly wrong")
+        else:
+            await message.channel.send("I'm sorry, but you do not appear to be in a voice channel at this time")
+    
+    # If message was "inkbot: leave", then leave the current vc
+    if message.content.lower() == 'inkbot: leave':
+        if message.guild.voice_client:
+            await message.guild.voice_client.disconnect()
+            await message.channel.send(f"Alright, leaving the voice chat now...")
+        else:
+            await message.channel.send("I'm sorry, but I do not appear to be connected to a voice channel at this time")
+
+    # If message was "inkbot: tts", Speak tts
+    if message.content.lower().startswith('inkbot: tts'):
+        if not message.author.voice:
+            await message.channel.send("You're not in a voice channel.")
+        if not message.guild.voice_client:
+            await message.channel.send("I'm sorry, but I do not appear to be connected to a voice channel at this time")
+            
+        user_content  = message.content[11:].strip()
+        await text_to_speech(user_content, message)
 
 
     # Check if the user input is some variation of 'inkBOT: forget' (case-insensitive)
@@ -266,7 +370,7 @@ Incorrect format: `inkbot: help forget <integer>`
             else:
                 numToErase = int(user_content) * 2
                 for i in range(numToErase):
-                    chat_histories[message.channel.id].pop(2)
+                    chat_histories[message.channel.id].pop(3)
                 await message.channel.send("Understood, clearing " + user_content + " prompts and their responses from this channel.")
         else:
             await message.channel.send("Sorry, I couldn't find any memories from this channel.")
@@ -314,14 +418,6 @@ Incorrect format: `inkbot: help forget <integer>`
     # Check if the message corresponds with a chatbot activation
     if message.content.lower().startswith('inkbot,') or message.content.lower().startswith('dinklebot,'):
         async with message.channel.typing():
-
-            # Get current date and time
-            global current_time
-            global formatted_time
-            
-            current_time = datetime.datetime.now()
-            formatted_time = current_time.strftime("%B %d, %Y %I:%M:%S %p")
-
             # Check if prompt passes moderation
             isPromptSafe = await is_message_safe(message.content)
             
@@ -353,7 +449,7 @@ Incorrect format: `inkbot: help forget <integer>`
             elif response == "RequestError":
                 await message.channel.send("Sorry, could not generate response. Please use \"inkbot: forget\" and try again. If this still did not fix the issue, there was probably an error connecting to OpenAI.")
                 for i in range(2):
-                    chat_histories[message.channel.id].pop(2)
+                    chat_histories[message.channel.id].pop(3)
             else:
                 # Check if the response passes moderation, then send the message or error depending on if it does
                 isResponseSafe = await is_message_safe(response)
