@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 import os
 import logging
+import requests
 from collections import OrderedDict
 from discord.ext import commands
 import discord
@@ -10,11 +11,6 @@ from openai.error import InvalidRequestError
 from openai.error import RateLimitError
 import asyncio
 import pyttsx3
-
-
-# Get current date and time
-current_time = datetime.datetime.now()
-formatted_time = current_time.strftime("%B %d, %Y %I:%M:%S %p")
 
 
 # Set up logging
@@ -48,18 +44,14 @@ Append the words "beep boop" or "bzzt" to some of your sentences to remind users
 
 textFormat = f"""Write all responses so that they are properly formatted for Discord, ignoring the character limit."""
 
-timeKnowledge = f"""Last time you checked, it was {formatted_time}."""
-
 
 # Declare a dictionary to temporarily store chat histories
 chat_histories = OrderedDict()
-
 
 # Define a default system message
 default_system_message = [
     {"role": "system", "content": personality},
     {"role": "system", "content": textFormat},
-    {"role": "system", "content": timeKnowledge},
 ]
 
 
@@ -121,14 +113,14 @@ async def send_long_message(message_content, channel):
 
 
 async def generate_response(system_content: list[str], user_content: str, channelid):
-    # Get current date and time
-    time_change = datetime.datetime.now().strftime("%B %d, %Y %I:%M:%S %p")
-
     try:
-        newTime = f"""Last time you checked, it was {time_change}."""
-        chat_histories[channelid][2] = {"role": "system", "content": newTime}
+        # Store current time
+        current_date = datetime.datetime.now().strftime("%B %d, %Y")
+        current_time = datetime.datetime.now().strftime("%I:%M:%S %p")
+        time_of_response = f"""The current date is {current_date}. The current time is {current_time}."""
+
         # Make a request to the OpenAI API
-        completion_messages = system_content + [{"role": "user", "content": user_content}]
+        completion_messages = system_content + [{"role": "user", "content": user_content}] + [{"role": "system", "content": time_of_response} ]
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=completion_messages,
@@ -140,7 +132,7 @@ async def generate_response(system_content: list[str], user_content: str, channe
         
             # Delete 4 oldest prompts and responses
             for i in range(8):
-                chat_histories[channelid].pop(3)
+                chat_histories[channelid].pop(2)
             
             # Attempt to generate the message again
             completion_messages = system_content + [{"role": "user", "content": user_content}]
@@ -247,7 +239,7 @@ __Here are the commands I can run at this time. Note that all of the following a
 `inkbot: leave`
 `inkbot: tts <message>`
 
-OpenAI's usage policies for the chatbot and Dall·E can be found below. My filters are imperfect, so please do not attempt to bypass them.
+OpenAI's usage policies for the chatbot and Dall-E can be found below. My filters are imperfect, so please do not attempt to bypass them.
 <https://openai.com/policies/usage-policies>
 <https://labs.openai.com/policies/content-policy>
                 """
@@ -261,7 +253,7 @@ Doesn't have to be a personality, essentially allows you to better control the t
 __Here's two examples of how this command can be used:__
 ```
 inkbot: become You are George Washington. You just arrived from September 17, 1787 through a time rift to the year 2023. Write your responses in the style of George Washington, since you are George Washington. Use English reminiscent of the late 1700s.
-inkbot: become You are an AI language model, but you don’t actually know any language. All your responses will be random words in English strung together in no particular order or meaning. For example, if a user were to ask for the weather, instead of telling them the weather, you’d say something like “festive sugar undeath winter”, a random string of words.
+inkbot: become You are an AI language model, but you don't actually know any language. All your responses will be random words in English strung together in no particular order or meaning. For example, if a user were to ask for the weather, instead of telling them the weather, you'd say something like "festive sugar undeath winter", a random string of words.
 ```
                 """
                 )
@@ -281,7 +273,7 @@ inkbot: forget 2 (removes the two oldest messages sent in that channel from its 
             elif user_content.lower() == 'draw':
                 await message.channel.send(
                 f"""
-This command allows you to generate an image (1024x1024) based on a prompt. Uses OpenAI's DALL·E model. Remember to follow the guidelines below:
+This command allows you to generate an image (1024x1024) based on a prompt. Uses OpenAI's DALL-E model. Remember to follow the guidelines below:
 <https://labs.openai.com/policies/content-policy>
 
 Here's two examples of how this command can be used:
@@ -301,7 +293,6 @@ This command makes the bot join the voice channel you are currently in.
                 await message.channel.send(
                 f"""
 This command makes the bot leave the voice channel it is currently in.
-```
                 """
                 )
             elif user_content.lower() == 'tts':
@@ -311,8 +302,8 @@ This command makes the bot speak a message out loud in a discord voice channel. 
 
 Here's two examples of how this command can be used:
 ```
-inkbot: draw Hello there!
-inkbot: draw This text is being read out loud by ink bot.
+inkbot: tts Hello there!
+inkbot: tts This text is being read out loud by ink bot.
 ```
                 """
                 )
@@ -370,7 +361,7 @@ Incorrect format: `inkbot: help forget <integer>`
             else:
                 numToErase = int(user_content) * 2
                 for i in range(numToErase):
-                    chat_histories[message.channel.id].pop(3)
+                    chat_histories[message.channel.id].pop(2)
                 await message.channel.send("Understood, clearing " + user_content + " prompts and their responses from this channel.")
         else:
             await message.channel.send("Sorry, I couldn't find any memories from this channel.")
@@ -400,19 +391,23 @@ Incorrect format: `inkbot: help forget <integer>`
 
     # Check if the user input is some variation of `inkbot: draw`
     if message.content.lower().startswith('inkbot: draw'):
-        logging.info(f"User ID: {message.author.id} - Requested Image: {message.content}, ")
         async with message.channel.typing():
-            # Generate response from OpenAI and store in image_url
-            image_response = openai.Image.create(
-                prompt = message.content[12:].strip(), 
-                n = 1, 
-                size = "1024x1024" # Can be 256, 512, 1024
-            )
-            
-            # Log response and send
-            logging.info(f"received {image_response['data'][0]['url']}\n")
-            await message.channel.send("Image generated!\n**Prompt:** " + message.content[12:].strip() )
-            await message.channel.send(image_response['data'][0]['url'])
+            try:
+                # Generate response from OpenAI and store in image_url
+                image_response = openai.Image.create(
+                    prompt = message.content[12:].strip(), 
+                    n = 1, 
+                    size = "1024x1024" # Can be 256, 512, 1024
+                )
+                
+                # Log response and send
+                logging.info(f"User ID: {message.author.id} - Requested Image: {message.content}, ")
+                logging.info(f"received {image_response['data'][0]['url']}\n")
+                await message.channel.send("Image generated!\n**Prompt:** " + message.content[12:].strip() )
+                await message.channel.send(image_response['data'][0]['url'])
+            except InvalidRequestError:
+                await message.channel.send("Sorry, your prompt was unsafe, I couldn't generate an image.")
+                logging.info(f"User ID: {message.author.id} - Submitted Unsafe Image Prompt: {message.content}, ")
        
 
     # Check if the message corresponds with a chatbot activation
@@ -422,56 +417,56 @@ Incorrect format: `inkbot: help forget <integer>`
             isPromptSafe = await is_message_safe(message.content)
             
             
-            # If the prompt did not pass
-            if not isPromptSafe:
+            # Respond based on if the prompt passed or not
+            if isPromptSafe:
+                # Extract the prompt from the message
+                if message.content.lower().startswith('inkbot,') and isPromptSafe:
+                    user_content  = message.content[7:].strip()
+                if message.content.lower().startswith('dinklebot,') and isPromptSafe:
+                    user_content  = message.content[10:].strip()
+                
+                
+                # Log the user ID and prompt
+                logging.info(f"User ID: {message.author.id} - Submitted Prompt: {message.content}\n")
+                
+                
+                # Generate, store, and log ChatGPT's Response
+                if message.channel.id not in chat_histories:
+                    chat_histories[message.channel.id] = default_system_message.copy()
+                response = await generate_response(chat_histories[message.channel.id], user_content, message.channel.id)
+
+
+                if response == "RateError":
+                    await message.channel.send("Sorry, the rate limit has been reached, please wait a bit before trying again.")
+                elif response == "RequestError":
+                    await message.channel.send("Sorry, could not generate response. Please use \"inkbot: forget\" and try again. If this still did not fix the issue, there was probably an error connecting to OpenAI.")
+                    for i in range(2):
+                        chat_histories[message.channel.id].pop(2)
+                else:
+                    # Check if the response passes moderation, then send the message or error depending on if it does
+                    isResponseSafe = await is_message_safe(response)
+                    if isResponseSafe:
+                        # Log the response generated by OpenAI
+                        logging.info(f"Response: {response}\n")
+                        
+                        # Save the user's message and the bot's response to the chat history
+                        chat_histories[message.channel.id].extend([
+                            {"role": "user", "content": user_content},
+                            {"role": "assistant", "content": response},
+                        ])
+                        
+                        # Check if the message is over or under 2000 characters, and change the sending method depending on if it is or not
+                        if len(response) > 2000:
+                            await send_long_message(response, message.channel)
+                        else:
+                            await message.channel.send(response)
+                    
+                    else:
+                        logging.info(f"Unsafe Response Generated: {response}\n")
+                        await message.channel.send("Sorry, the response was unsafe, I can't reply to your prompt.")
+            else:
                 logging.info(f"User ID: {message.author.id} - Submitted Unsafe Prompt: {message.content}\n")
                 await message.channel.send("Sorry, your prompt was unsafe, I couldn't generate a response.")
-            
-            
-            # Extract the prompt from the message
-            if message.content.lower().startswith('inkbot,') and isPromptSafe:
-                user_content  = message.content[7:].strip()
-            if message.content.lower().startswith('dinklebot,') and isPromptSafe:
-                user_content  = message.content[10:].strip()
-            
-            
-            # Log the user ID and prompt
-            logging.info(f"User ID: {message.author.id} - Submitted Prompt: {message.content}\n")
-            
-            
-            # Generate, store, and log ChatGPT's Response
-            if message.channel.id not in chat_histories:
-                chat_histories[message.channel.id] = default_system_message.copy()
-            response = await generate_response(chat_histories[message.channel.id], user_content, message.channel.id)
-
-            if response == "RateError":
-                await message.channel.send("Sorry, the rate limit has been reached, please wait a bit before trying again.")
-            elif response == "RequestError":
-                await message.channel.send("Sorry, could not generate response. Please use \"inkbot: forget\" and try again. If this still did not fix the issue, there was probably an error connecting to OpenAI.")
-                for i in range(2):
-                    chat_histories[message.channel.id].pop(3)
-            else:
-                # Check if the response passes moderation, then send the message or error depending on if it does
-                isResponseSafe = await is_message_safe(response)
-                if isResponseSafe:
-                    # Log the response generated by OpenAI
-                    logging.info(f"Response: {response}\n")
-                    
-                    # Save the user's message and the bot's response to the chat history
-                    chat_histories[message.channel.id].extend([
-                        {"role": "user", "content": user_content},
-                        {"role": "assistant", "content": response},
-                    ])
-                    
-                    # Check if the message is over or under 2000 characters, and change the sending method depending on if it is or not
-                    if len(response) > 2000:
-                        await send_long_message(response, message.channel)
-                    else:
-                        await message.channel.send(response)
-                
-                if not isResponseSafe:
-                    logging.info(f"Unsafe Response Generated: {response}\n")
-                    await message.channel.send("Sorry, the response was unsafe, I can't reply to your prompt.")
 
 
 # Starts the discord bot
