@@ -247,7 +247,7 @@ __Here are the commands I can run at this time. Note that all of the following a
 `inkbot: leave`
 `inkbot: tts <message>`
 
-OpenAI's usage policies for the chatbot and Dall·E can be found below. My filters are imperfect, so please do not attempt to bypass them.
+OpenAI's usage policies for the chatbot and DallÂ·E can be found below. My filters are imperfect, so please do not attempt to bypass them.
 <https://openai.com/policies/usage-policies>
 <https://labs.openai.com/policies/content-policy>
                 """
@@ -261,7 +261,7 @@ Doesn't have to be a personality, essentially allows you to better control the t
 __Here's two examples of how this command can be used:__
 ```
 inkbot: become You are George Washington. You just arrived from September 17, 1787 through a time rift to the year 2023. Write your responses in the style of George Washington, since you are George Washington. Use English reminiscent of the late 1700s.
-inkbot: become You are an AI language model, but you don’t actually know any language. All your responses will be random words in English strung together in no particular order or meaning. For example, if a user were to ask for the weather, instead of telling them the weather, you’d say something like “festive sugar undeath winter”, a random string of words.
+inkbot: become You are an AI language model, but you donÂ’t actually know any language. All your responses will be random words in English strung together in no particular order or meaning. For example, if a user were to ask for the weather, instead of telling them the weather, youÂ’d say something like Â“festive sugar undeath winterÂ”, a random string of words.
 ```
                 """
                 )
@@ -281,7 +281,7 @@ inkbot: forget 2 (removes the two oldest messages sent in that channel from its 
             elif user_content.lower() == 'draw':
                 await message.channel.send(
                 f"""
-This command allows you to generate an image (1024x1024) based on a prompt. Uses OpenAI's DALL·E model. Remember to follow the guidelines below:
+This command allows you to generate an image (1024x1024) based on a prompt. Uses OpenAI's DALLÂ·E model. Remember to follow the guidelines below:
 <https://labs.openai.com/policies/content-policy>
 
 Here's two examples of how this command can be used:
@@ -301,7 +301,6 @@ This command makes the bot join the voice channel you are currently in.
                 await message.channel.send(
                 f"""
 This command makes the bot leave the voice channel it is currently in.
-```
                 """
                 )
             elif user_content.lower() == 'tts':
