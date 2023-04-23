@@ -81,6 +81,7 @@ async def helpPost(originalMessage):
 
 # Function will make the bot join the voice channel of the sender, if they are in one accessible by the bot
 async def vcJoin(originalMessage):
+    logging.info(f"User ID: {originalMessage.author.id} - Requested joining of voice channel: {originalMessage.author.voice.channel}\n")
     async with originalMessage.channel.typing():
         if originalMessage.author.voice is not None:
             try:
@@ -93,6 +94,7 @@ async def vcJoin(originalMessage):
 
 # Function will make the bot leave its current voice channel, if it is in one
 async def vcLeave(originalMessage):
+    logging.info(f"User ID: {originalMessage.author.id} - Requested leaving of voice channel: {originalMessage.author.voice.channel}\n")
     async with originalMessage.channel.typing():
         if originalMessage.guild.voice_client:
             await originalMessage.channel.send(f"Alright, leaving my current voice chat...")

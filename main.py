@@ -72,5 +72,6 @@ async def on_message(message):
     elif message.content.lower().startswith('inkbot,') or message.content.lower().startswith('dinklebot,'):
         await chatPost(message, chatHistories, defaultHistoryEntry)
 
+
 # Start bot
 client.run(DISCORD_TOKEN)
