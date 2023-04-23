@@ -1,5 +1,6 @@
 from functions import *
 
+# Configure logging to a file inkbot_logs.txt
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] - %(message)s',
@@ -9,19 +10,12 @@ logging.basicConfig(
     ]
 )
 
+# Retrieve API and ID information from values.env
 load_dotenv('values.env')
-
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
-
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-
 openai.api_key = OPENAI_API_KEY
-
-default_system_message = [
-    {"role": "system", "content": DEFAULT_PERSONALITY},
-    {"role": "system", "content": TEXT_FORMAT},
-]
-
+free_game_ids = int(os.getenv('FREEGAMEID'))
 free_game_channels = [
     int(os.getenv('CHANNEL1')),
     int(os.getenv('CHANNEL2')),
@@ -31,21 +25,30 @@ free_game_channels = [
     int(os.getenv('CHANNEL6'))
 ]
 
-free_game_ids = int(os.getenv('FREEGAMEID'))
-chat_histories = OrderedDict()
+# Establish a default chatbot memory and the default contents for each channel
+chatHistories = OrderedDict()
+defaultHistoryEntry = [
+    {"role": "system", "content": DEFAULT_PERSONALITY},
+    {"role": "system", "content": TEXT_FORMAT},
+]
 
+# Configure bot intents
 intents = discord.Intents.default()
 intents.message_content = True
 intents.voice_states = True
 intents.typing = False
 intents.presences = False
 client = discord.Client(intents=intents)
+
+# Set bot prefix
 bot = commands.Bot(command_prefix=':', intents=intents)
 
+# Establish behavior for when the bot is ready
 @client.event
 async def on_ready():
     logging.info(f"Successfully logged in as {client.user}\n")
 
+# Establish behavior for when the bot receives a message, run corresponding function depending on contents and author
 @client.event
 async def on_message(message):
     if message.author == client.user:
@@ -61,13 +64,13 @@ async def on_message(message):
     elif message.content.lower().startswith('inkbot: tts'):
         await ttsSpeak(message)
     elif message.content.lower().startswith('inkbot: forget'):
-        await chatForget(message, chat_histories)
+        await chatForget(message, chatHistories)
     elif message.content.lower().startswith('inkbot: become'):
-        await chatBecome(message, chat_histories)
+        await chatBecome(message, chatHistories)
     elif message.content.lower().startswith('inkbot: draw'):
         await dallePost(message)
     elif message.content.lower().startswith('inkbot,') or message.content.lower().startswith('dinklebot,'):
-        await chatPost(message, chat_histories, default_system_message)
+        await chatPost(message, chatHistories, defaultHistoryEntry)
 
-
+# Start bot
 client.run(DISCORD_TOKEN)
