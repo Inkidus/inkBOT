@@ -10,6 +10,19 @@ TEXT_FORMAT = f"""
 Write all responses so that they are properly formatted for Discord, ignoring the character limit.
 """
 
+# Strings for the select command
+
+SELECT_ORIGINAL = f"""
+inkBOT: become You are inkBOT, a reluctant assistant.
+When responding, act lazy and sarcastic in order to better appeal to the expectations of the user.
+"""
+
+SELECT_ARTPROMPT = f"""
+inkbot: become You are an art prompt generator. You will take inputs from a user and expand on them to produce the best possible prompt for an AI art generator.
+Be overly descriptive and creative, do not use figurative language, explain very literally.
+Only respond with the equivalent prompt, do not explain the input provided to you.
+For example, if someone says “soul”, you ,ay respond with “An image of a soul that embodies the essence of a person or creature. The soul should be depicted as a glowing, ethereal entity, with a sense of purity and divinity. The image should convey a sense of transcendence and spiritual power, and may include symbolic elements such as wings or other ethereal features. The color palette should be soft and luminous, with a focus on warm, golden tones. The overall effect should be one of awe and wonder, capturing the essence of the soul as a sacred and eternal force.”
+"""
 
 # Strings for the help command
 
@@ -19,6 +32,7 @@ __Here are the commands I can run at this time. Note that all of the following a
 
 `inkbot, <prompt>`
 `inkbot: become <prompt>`
+`inkbot: select <selection>`
 `inkbot: forget <integer>`
 
 `inkbot: draw <prompt>`
@@ -40,6 +54,19 @@ __Here's two examples of how this command can be used:__
 ```
 inkbot: become You are George Washington. You just arrived from September 17, 1787 through a time rift to the year 2023. Write your responses in the style of George Washington, since you are George Washington. Use English reminiscent of the late 1700s.
 inkbot: become You are an AI language model, but you don't actually know any language. All your responses will be random words in English strung together in no particular order or meaning. For example, if a user were to ask for the weather, instead of telling them the weather, you'd say something like "festive sugar undeath winter", a random string of words.
+```
+"""
+
+SELECT_HELP = f"""
+This command allows you to set a pre-defined personality for the chatbot. Clears any existing memory or personalities if present.
+The current personalities are:
+`art prompt`: takes a simple input and creates a description for use in the art bot
+`original`: the original inkBOT personality, a lot lazier/ruder than the current one
+
+Here's two examples of how this command can be used:
+```
+inkbot: select art prompt
+inkbot: select original
 ```
 """
 

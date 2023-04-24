@@ -67,6 +67,8 @@ async def on_message(message):
         await chatForget(message, chatHistories)
     elif message.content.lower().startswith('inkbot: become'):
         await chatBecome(message, chatHistories)
+    elif message.content.lower().startswith('inkbot: select'):
+        await chatSelect(message, chatHistories)
     elif message.content.lower().startswith('inkbot: draw'):
         await dallePost(message)
     elif message.content.lower().startswith('inkbot,') or message.content.lower().startswith('dinklebot,'):
