@@ -9,7 +9,9 @@ Includes a version of FreeGameFormat recreated in Python, text to speech for voi
 ## Installation
 Download and extract the zip file. Add your own API keys to values.env. In values.env, also set the channel(s) you would like the free game formatter to output to as well as the users you would like to have access to that command. Depending on the number of channels, the free_game_channels and free_game_ids portion in main.py may have to be updated.
 
-To run the bot, please see the following page: https://discordpy.readthedocs.io/en/stable/discord.html
+Some additional libraries are required in order to run this bot. Please install them in order to ensure proper operation.
+
+To connect the bot to discord, please see the following page: https://discordpy.readthedocs.io/en/stable/discord.html
 
 Any temporarily free games can be input by creating a file freegames.txt in the same directory as main.py. Use the following format:
 
