@@ -8,6 +8,7 @@ import requests
 import datetime
 import asyncio
 import pyttsx3
+import random
 
 from dotenv import load_dotenv
 from collections import OrderedDict
@@ -27,6 +28,42 @@ async def send_long_message(message_content, channel):
 		message_content = message_content[split_index:].lstrip('\n')
 
 		await channel.send(part)
+
+# Function will send the results of a dice roll
+async def dicePost(originalMessage):
+	async with originalMessage.channel.typing():
+		prompt = originalMessage.content[12:].strip()
+		if not prompt:
+			await originalMessage.channel.send("Rolling a void dice... You rolled nothing!\n(Please include a number next time!)")
+		else:
+			try:
+				side_number = int(prompt)
+				if side_number < 0:
+					roll_result = random.randint(side_number, -1)
+					await originalMessage.channel.send(f'Rolling an anti-dice with {side_number} sides...\nYou rolled a **{roll_result}**!')
+				elif side_number == 0:
+					await originalMessage.channel.send(f'Rolling a 0-sided dice...\nHuh, the dice disappeared...')
+				elif side_number == 1:
+					await originalMessage.channel.send(f'Rolling a 1-sided dice...\nYou rolled a **1**!')
+				else:
+					roll_result = random.randint(1, int(side_number))
+					await originalMessage.channel.send(f'Rolling a {side_number}-sided dice...\nYou rolled a **{roll_result}**!')
+			except ValueError:
+				await originalMessage.channel.send("How do I even begin simulating a dice like that?")
+
+# Function will send the results of a coinflip
+async def coinPost(originalMessage):
+	async with originalMessage.channel.typing():
+		randomInt = random.randint(1, 6001)
+		if randomInt == 3001:
+			await originalMessage.channel.send(f'Flipping a coin...\nIt landed on **its side**?')
+		elif randomInt < 3001:
+			await originalMessage.channel.send(f'Flipping a coin...\n**Heads**!')
+		elif randomInt > 3001:
+			await originalMessage.channel.send(f'Flipping a coin...\n**Tails**!')
+		else:
+			await originalMessage.channel.send(f"Flipping a coin...\nHuh, the coin disappeared...")
+
 
 # Function will read the contents of freegames.txt and use them to distribute a list of temporarily free games to a predefined list
 async def freeGamesPost(originalMessage, client, free_game_channels):

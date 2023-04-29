@@ -32,6 +32,9 @@ DEFAULT_HELP = f"""
 __Here are the commands I can run at this time. Note that all of the following are case-insensitive. For more information, use `inkbot, help <command>`:__
 `inkbot, help <command>`
 
+`inkbot: coinflip`
+`inkbot: roll <integer>`
+
 `inkbot, <prompt>`
 `inkbot: become <prompt>`
 `inkbot: select <selection>`
@@ -56,7 +59,7 @@ OpenAI's usage policies for the chatbot and Dall-E can be found below. My filter
 BECOME_HELP = f"""
 This command allows you to set a personality for the chatbot. Clears any existing memory or personalities if present.
 Doesn't have to be a personality, essentially allows you to better control the types of responses it produces. The more detail you provide, the better
-                
+				
 __Here's two examples of how this command can be used:__
 ```
 inkbot: become You are George Washington. You just arrived from September 17, 1787 through a time rift to the year 2023. Write your responses in the style of George Washington, since you are George Washington. Use English reminiscent of the late 1700s.

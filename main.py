@@ -54,6 +54,11 @@ async def on_ready():
 async def on_message(message):
 	if message.author == client.user:
 		return
+
+	elif message.content.lower().startswith('inkbot: roll') or message.content.lower().startswith('inkbot: dice'):
+		await dicePost(message)
+	elif message.content.lower() == 'inkbot: coin' or message.content.lower() == 'inkbot: coinflip' or message.content.lower() == 'inkbot: flipcoin':
+		await coinPost(message)
 		
 	elif message.content.lower() == 'send free games' and message.author.id == free_game_ids:
 		await freeGamesPost(message, client, free_game_channels)
