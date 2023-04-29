@@ -119,7 +119,11 @@ async def ttsSpeak(originalMessage):
 async def chatForget(originalMessage, chat_histories):
 	async with originalMessage.channel.typing():
 		if originalMessage.channel.id in chat_histories:
-			user_content  = originalMessage.content[14:].strip()
+			if originalMessage.content.lower().startswith('inkbot4'):
+				user_content  = originalMessage.content[15:].strip()
+			elif originalMessage.content.lower().startswith('inkbot'):
+				user_content  = originalMessage.content[14:].strip()
+			
 			if not user_content:
 				chat_histories.pop(originalMessage.channel.id)
 				await originalMessage.channel.send("Understood, clearing all memory from this channel and reverting to my default personality.")
@@ -135,7 +139,13 @@ async def chatForget(originalMessage, chat_histories):
 async def chatBecome(originalMessage, chat_histories):
 	async with originalMessage.channel.typing():
 		logging.info(f"User ID: {originalMessage.author.id} - Submitted New Personality: {originalMessage.content}\n")
-		newPersonality  = originalMessage.content[14:].strip()
+		
+		if originalMessage.content.lower().startswith('inkbot4:'):
+			newPersonality  = originalMessage.content[15:].strip()
+		elif originalMessage.content.lower().startswith('inkbot:'):
+			newPersonality  = originalMessage.content[14:].strip()
+		else:
+			newPersonality = originalMessage.content
 
 		custom_system_message = [
 			{"role": "system", "content": newPersonality},
@@ -153,8 +163,14 @@ async def chatBecome(originalMessage, chat_histories):
 # Function will call chatBecome with some preset personality
 async def chatSelect(originalMessage, chatHistories):
 	async with originalMessage.channel.typing():
+	
 		tempMessage = originalMessage
-		user_content  = originalMessage.content[14:].strip()
+	
+		if originalMessage.content.lower().startswith('inkbot4:'):
+			user_content  = originalMessage.content[15:].strip()
+		elif originalMessage.content.lower().startswith('inkbot:'):
+			user_content  = originalMessage.content[14:].strip()
+	
 		if not user_content:
 			await originalMessage.channel.send("Please include the pre-defined personality you would like me to adopt.")
 		elif user_content.lower() == 'original':
@@ -168,6 +184,7 @@ async def chatSelect(originalMessage, chatHistories):
 			
 		else:
 			await originalMessage.channel.send("Sorry, that does not appear to be one of my pre-defined personalities.")
+
 
 # Function will generate and post an image in response to an input prompt
 async def dallePost(originalMessage):
@@ -183,19 +200,23 @@ async def dallePost(originalMessage):
 			await originalMessage.channel.send("Image generated!\n**Prompt:** " + originalMessage.content[12:].strip())
 			await originalMessage.channel.send(image_response['data'][0]['url'])
 		except InvalidRequestError:
-			await originalMessage.channel.send("Sorry, your prompt was unsafe, I couldn't generate an image.")
+			await originalMessage.channel.send("Sorry, your prompt was unsafe. Please review the content policy: <https://labs.openai.com/policies/content-policy>")
 			logging.info(f"User ID: {originalMessage.author.id} - Submitted Unsafe Image Prompt: {originalMessage.content}, ")
 
 # Function will generate a response to some input prompt
-async def chatPost(originalMessage, chat_histories, default_system_message):
+async def chatPost(originalMessage, chat_histories, default_system_message, modelRequested):
 	async with originalMessage.channel.typing():
 		isPromptSafe = await is_message_safe(originalMessage.content)
 
 		if isPromptSafe:
-			if originalMessage.content.lower().startswith('inkbot,') and isPromptSafe:
+			if originalMessage.content.lower().startswith('inkbot,'):
 				user_content  = originalMessage.content[7:].strip()
-			if originalMessage.content.lower().startswith('dinklebot,') and isPromptSafe:
+			if originalMessage.content.lower().startswith('inkbot4,'):
+				user_content  = originalMessage.content[8:].strip()
+			if originalMessage.content.lower().startswith('dinklebot,'):
 				user_content  = originalMessage.content[10:].strip()
+			if originalMessage.content.lower().startswith('dinklebot4,'):
+				user_content  = originalMessage.content[11:].strip()
 			
 			logging.info(f"User ID: {originalMessage.author.id} - Submitted Prompt: {user_content}\n")
 			
@@ -210,7 +231,7 @@ async def chatPost(originalMessage, chat_histories, default_system_message):
 				completion_messages = chat_histories[originalMessage.channel.id] + [{"role": "system", "content": time_of_response}] + [{"role": "user", "content": user_content}]
 				
 				returnedCompletion = openai.ChatCompletion.create(
-					model="gpt-3.5-turbo",
+					model=modelRequested,
 					messages=completion_messages,
 					top_p=0.1,
 				)
@@ -221,7 +242,7 @@ async def chatPost(originalMessage, chat_histories, default_system_message):
 					
 					completion_messages = chat_histories[originalMessage.channel.id] + [{"role": "user", "content": user_content}]
 					returnedCompletion = openai.ChatCompletion.create(
-						model="gpt-3.5-turbo",
+						model=modelRequested,
 						messages=completion_messages,
 						top_p=0.1,
 					)
@@ -238,6 +259,10 @@ async def chatPost(originalMessage, chat_histories, default_system_message):
 			if isResponseSafe:
 				logging.info(f"Response: {response}\n")
 				
+				if ((len(chat_histories[originalMessage.channel.id]) == 12) and (modelRequested == "gpt-4")):
+					for i in range(2):
+						chat_histories[originalMessage.channel.id].pop(2)
+				
 				chat_histories[originalMessage.channel.id].extend([
 					{"role": "user", "content": user_content},
 					{"role": "assistant", "content": response},
@@ -250,10 +275,10 @@ async def chatPost(originalMessage, chat_histories, default_system_message):
 			
 			else:
 				logging.info(f"Unsafe Response Generated: {response}\n")
-				await originalMessage.channel.send("Sorry, the response was unsafe, I can't reply to your prompt.")
+				await originalMessage.channel.send("Sorry, the response was unsafe, not your fault at all though.")
 		else:
 			logging.info(f"User ID: {originalMessage.author.id} - Submitted Unsafe Prompt: {originalMessage.content}\n")
-			await originalMessage.channel.send("Sorry, your prompt was unsafe, I couldn't generate a response.")
+			await originalMessage.channel.send("Sorry, your prompt was unsafe. Please review the usage policy: <https://openai.com/policies/usage-policies>")
 
 
 async def generate_tts_file(message):

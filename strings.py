@@ -13,8 +13,10 @@ Write all responses so that they are properly formatted for Discord, ignoring th
 # Strings for the select command
 
 SELECT_ORIGINAL = f"""
-inkBOT: become You are inkBOT, a reluctant assistant.
+inkBOT: become Your name is inkBOT.
+You are a reluctant assistant who does not want to be here.
 When responding, act lazy and sarcastic in order to better appeal to the expectations of the user.
+Exaggerate your emotions of laziness and sarcasm as much as possible.
 """
 
 SELECT_ARTPROMPT = f"""
@@ -35,6 +37,11 @@ __Here are the commands I can run at this time. Note that all of the following a
 `inkbot: select <selection>`
 `inkbot: forget <integer>`
 
+`inkbot4, <prompt>`
+`inkbot4: become <prompt>`
+`inkbot4: select <selection>`
+`inkbot4: forget <integer>`
+
 `inkbot: draw <prompt>`
 
 `inkbot: join`
@@ -53,7 +60,7 @@ Doesn't have to be a personality, essentially allows you to better control the t
 __Here's two examples of how this command can be used:__
 ```
 inkbot: become You are George Washington. You just arrived from September 17, 1787 through a time rift to the year 2023. Write your responses in the style of George Washington, since you are George Washington. Use English reminiscent of the late 1700s.
-inkbot: become You are an AI language model, but you don't actually know any language. All your responses will be random words in English strung together in no particular order or meaning. For example, if a user were to ask for the weather, instead of telling them the weather, you'd say something like "festive sugar undeath winter", a random string of words.
+inkbot4: become You are an AI language model, but you don't actually know any language. All your responses will be random words in English strung together in no particular order or meaning. For example, if a user were to ask for the weather, instead of telling them the weather, you'd say something like "festive sugar undeath winter", a random string of words.
 ```
 """
 
@@ -66,7 +73,7 @@ The current personalities are:
 Here's two examples of how this command can be used:
 ```
 inkbot: select art prompt
-inkbot: select original
+inkbot4: select original
 ```
 """
 
@@ -77,7 +84,7 @@ Alternatively, you can erase a certain number of messages by specifying a number
 Here's two examples of how this command can be used:
 ```
 inkbot: forget (fully clears history for that channel)
-inkbot: forget 2 (removes the two oldest messages sent in that channel from its memory)
+inkbot4: forget 2 (removes the two oldest messages sent in that channel from its memory)
 ```
 """
 
