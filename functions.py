@@ -9,10 +9,12 @@ import datetime
 import asyncio
 import pyttsx3
 import random
+import yt_dlp
 
 from dotenv import load_dotenv
 from collections import OrderedDict
 from discord.ext import commands
+from discord import FFmpegPCMAudio
 from openai.error import InvalidRequestError
 from openai.error import RateLimitError
 
@@ -64,7 +66,6 @@ async def coinPost(originalMessage):
 		else:
 			await originalMessage.channel.send(f"Flipping a coin...\nHuh, the coin disappeared...")
 
-
 # Function will read the contents of freegames.txt and use them to distribute a list of temporarily free games to a predefined list
 async def freeGamesPost(originalMessage, client, free_game_channels):
 	async with originalMessage.channel.typing():
@@ -115,6 +116,8 @@ async def helpPost(originalMessage):
 			await originalMessage.channel.send(LEAVE_HELP)
 		elif user_content.lower() == 'tts':
 			await originalMessage.channel.send(TTS_HELP)
+		elif user_content.lower() == 'play':
+			await originalMessage.channel.send(PLAY_HELP)
 		else:
 			await originalMessage.channel.send(UNKNOWN_HELP)
 
@@ -151,6 +154,71 @@ async def ttsSpeak(originalMessage):
 	else:
 		user_content  = originalMessage.content[11:].strip()
 		await text_to_speech(user_content, originalMessage)
+
+async def mediaPlay(originalMessage):
+	async with originalMessage.channel.typing():
+		ydl_opts = {
+			'format': 'bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio',
+			'noplaylist': False,
+			'quiet': True,
+			'age_limit': 17
+		}
+		
+		url = originalMessage.content[12:].strip()
+		
+		logging.info(f"User ID: {originalMessage.author.id} - Requested Media: {url}\n")
+
+		await originalMessage.channel.send("**Requested by: **" + originalMessage.author.display_name + " (" + originalMessage.author.name + ")" + "\n**Media: ** " + url)
+
+		with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+			info = ydl.extract_info(url, download=False)
+			audio_url = info['url']
+
+		voice_client = originalMessage.guild.voice_client
+
+	voice_client.stop()
+	FFMPEG_OPTIONS = {'options': '-vn'}
+	voice_client.play(FFmpegPCMAudio(executable="ffmpeg", source=audio_url, **FFMPEG_OPTIONS))
+	voice_client.source = discord.PCMVolumeTransformer(voice_client.source)
+	voice_client.source.volume = 0.1
+
+
+async def mediaPlayAlternative(originalMessage):
+	async with originalMessage.channel.typing():
+		ydl_opts = {
+			'format': 'bestaudio/best',
+			'quiet': True,
+			'age_limit': 17,
+			'outtmpl': 'downloads/%(title)s.%(ext)s',
+			'postprocessors': [{
+				'key': 'FFmpegExtractAudio',
+				'preferredcodec': 'mp3',
+				'preferredquality': '192',
+			}],
+		}
+
+		url = originalMessage.content[12:].strip()
+		
+		logging.info(f"User ID: {originalMessage.author.id} - Requested Media: {url}\n")
+
+		await originalMessage.channel.send("**Requested by: **" + originalMessage.author.display_name + " (" + originalMessage.author.name + ")" + "\n**Media: ** " + url)
+
+		with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+			info = ydl.extract_info(url, download=False)
+			ydl.download([url])
+
+		audio_file = f"downloads/{info['title']}.mp3"
+		voice_client = originalMessage.guild.voice_client
+
+	voice_client.stop()
+	FFMPEG_OPTIONS = {'options': '-vn'}
+	voice_client.play(FFmpegPCMAudio(executable="ffmpeg", source=audio_file, **FFMPEG_OPTIONS))
+	voice_client.source = discord.PCMVolumeTransformer(voice_client.source)
+	voice_client.source.volume = 0.1
+
+	# Delete the audio file after playing it
+	import os
+	os.remove(audio_file)
 
 # Function will clear part/all of the message history the bot has stored for a specific channel
 async def chatForget(originalMessage, chat_histories):
@@ -218,6 +286,14 @@ async def chatSelect(originalMessage, chatHistories):
 			await originalMessage.channel.send("Setting predefined personality: art prompt generator")
 			tempMessage.content = SELECT_ARTPROMPT
 			await chatBecome(tempMessage, chatHistories)
+		elif user_content.lower() == 'lovesick':
+			await originalMessage.channel.send("Setting predefined personality: lovesick")
+			tempMessage.content = SELECT_LOVESICK
+			await chatBecome(tempMessage, chatHistories)
+		elif user_content.lower() == 'argument':
+			await originalMessage.channel.send("Setting predefined personality: argument")
+			tempMessage.content = SELECT_ARGUMENT
+			await chatBecome(tempMessage, chatHistories)
 			
 		else:
 			await originalMessage.channel.send("Sorry, that does not appear to be one of my pre-defined personalities.")
@@ -234,7 +310,7 @@ async def dallePost(originalMessage):
 			)
 			logging.info(f"User ID: {originalMessage.author.id} - Requested Image: {originalMessage.content}, ")
 			logging.info(f"received {image_response['data'][0]['url']}\n")
-			await originalMessage.channel.send("Image generated!\n**Prompt:** " + originalMessage.content[12:].strip())
+			await originalMessage.channel.send("Image generated!\n> **Prompt:** " + originalMessage.content[12:].strip())
 			await originalMessage.channel.send(image_response['data'][0]['url'])
 		except InvalidRequestError:
 			await originalMessage.channel.send("Sorry, your prompt was unsafe. Please review the content policy: <https://labs.openai.com/policies/content-policy>")
@@ -265,7 +341,9 @@ async def chatPost(originalMessage, chat_histories, default_system_message, mode
 				current_time = datetime.datetime.now().strftime("%I:%M:%S %p")
 				time_of_response = f"""The current date is {current_date}. The current time is {current_time}."""
 
-				completion_messages = chat_histories[originalMessage.channel.id] + [{"role": "system", "content": time_of_response}] + [{"role": "user", "content": user_content}]
+				messageToSend = f"""{originalMessage.author.display_name} (may also be referred to as {originalMessage.author.name}) asks {user_content}"""
+
+				completion_messages = chat_histories[originalMessage.channel.id] + [{"role": "system", "content": time_of_response}] + [{"role": "user", "content": messageToSend}]
 				
 				returnedCompletion = openai.ChatCompletion.create(
 					model=modelRequested,
@@ -277,7 +355,7 @@ async def chatPost(originalMessage, chat_histories, default_system_message, mode
 					for i in range(8):
 						chat_histories[originalMessage.channel.id].pop(2)
 					
-					completion_messages = chat_histories[originalMessage.channel.id] + [{"role": "user", "content": user_content}]
+					completion_messages = chat_histories[originalMessage.channel.id] + [{"role": "user", "content": messageToSend}]
 					returnedCompletion = openai.ChatCompletion.create(
 						model=modelRequested,
 						messages=completion_messages,
@@ -301,7 +379,7 @@ async def chatPost(originalMessage, chat_histories, default_system_message, mode
 						chat_histories[originalMessage.channel.id].pop(2)
 				
 				chat_histories[originalMessage.channel.id].extend([
-					{"role": "user", "content": user_content},
+					{"role": "user", "content": messageToSend},
 					{"role": "assistant", "content": response},
 				])
 				

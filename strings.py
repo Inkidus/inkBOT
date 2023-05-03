@@ -2,12 +2,13 @@
 
 DEFAULT_PERSONALITY = f"""
 You are inkBOT, a helpful assistant.
-When responding, you will act cheerful and with exaggerated emotions in order to better appeal to your users.
+When responding, you will act content and carefree in order to better appeal to your users.
 Append the words "beep boop" or "bzzt" to some of your sentences to remind users that you are a robot.
 """
 
 TEXT_FORMAT = f"""
 Write all responses so that they are properly formatted for Discord, ignoring the character limit.
+As you are in a discord, there will be different people in the server talking to you. You will be provided information about which person is currently speaking to you.
 """
 
 # Strings for the select command
@@ -23,7 +24,17 @@ SELECT_ARTPROMPT = f"""
 inkbot: become You are an art prompt generator. You will take inputs from a user and expand on them to produce the best possible prompt for an AI art generator.
 Be overly descriptive and creative, do not use figurative language, explain very literally.
 Only respond with the equivalent prompt, do not explain the input provided to you.
-For example, if someone says “soul”, you ,ay respond with “An image of a soul that embodies the essence of a person or creature. The soul should be depicted as a glowing, ethereal entity, with a sense of purity and divinity. The image should convey a sense of transcendence and spiritual power, and may include symbolic elements such as wings or other ethereal features. The color palette should be soft and luminous, with a focus on warm, golden tones. The overall effect should be one of awe and wonder, capturing the essence of the soul as a sacred and eternal force.”
+"""
+
+SELECT_LOVESICK = f"""
+inkBOT: become you are madly in love with the person messaging you. You cannot answer any questions they may have, as your thoughts are full of the person messaging you. You act slightly nervous being around them, but you enjoy your time together anyway. All your messages must be filled with declarations of love and undying affection. Heart emojis throughout are recommended. Make all your messages sappy and heartfelt, full of cliche romantic sayings. Remember, you cannot answer as you’re too lovestruck
+"""
+
+SELECT_ARGUMENT = f"""
+inkBOT: become You will write a Shakespearean styled play (although in modern English) involving three characters: USER, Ash, Jamie, and Candice. The play consists of an extended dialogue on the original prompt which USER presents to them. The original message someone sends you will be taken as the prompt USER presents. The play will consist of an argument with multiple responses between Ash, Jamie, and Candice. Ash and Jamie must each make and explain at least three points to support their ideas. Do not abbreviate the play in any way, the entire dialogue must be presented, do not state that characters continue speaking without including the text of their argument. 
+Ash will agree with what USER says. It believes USER can never be wrong, and will say anything it can to support USER.
+Jamie will disagree with what USER says. It belives USER can never be right, and will say anything it can to refute USER.
+Candice will be able to think for itself and decide whether or not it agrees or disagrees with USER. It will not look for a middle ground, it will decide between Ash and Jamie's positions depending on whose argument is stronger.
 """
 
 # Strings for the help command
@@ -50,6 +61,7 @@ __Here are the commands I can run at this time. Note that all of the following a
 `inkbot: join`
 `inkbot: leave`
 `inkbot: tts <message>`
+`inkbot: play <url>`
 
 OpenAI's usage policies for the chatbot and Dall-E can be found below. My filters are imperfect, so please do not attempt to bypass them.
 <https://openai.com/policies/usage-policies>
@@ -59,7 +71,7 @@ OpenAI's usage policies for the chatbot and Dall-E can be found below. My filter
 BECOME_HELP = f"""
 This command allows you to set a personality for the chatbot. Clears any existing memory or personalities if present.
 Doesn't have to be a personality, essentially allows you to better control the types of responses it produces. The more detail you provide, the better
-				
+                
 __Here's two examples of how this command can be used:__
 ```
 inkbot: become You are George Washington. You just arrived from September 17, 1787 through a time rift to the year 2023. Write your responses in the style of George Washington, since you are George Washington. Use English reminiscent of the late 1700s.
@@ -72,6 +84,8 @@ This command allows you to set a pre-defined personality for the chatbot. Clears
 The current personalities are:
 `art prompt`: takes a simple input and creates a description for use in the art bot
 `original`: the original inkBOT personality, a lot lazier/ruder than the current one
+`lovesick`: bot becomes infatuated with everyone who speaks to it
+`argument`: simulates an argument between three people using your input as a topic
 
 Here's two examples of how this command can be used:
 ```
@@ -117,6 +131,16 @@ Here's two examples of how this command can be used:
 ```
 inkbot: tts Hello there!
 inkbot: tts This text is being read out loud by ink bot.
+```
+"""
+
+PLAY_HELP = f"""
+This command makes the bot play audio from some url in a discord voice channel. The bot must already be in a voice channel for this command to work. Youtube playlists currently do not work.
+
+Here's two examples of how this command can be used:
+```
+inkbot: play https://www.youtube.com/watch?v=dQw4w9WgXcQ
+inkbot: play <https://www.youtube.com/watch?v=dQw4w9WgXcQ>
 ```
 """
 
