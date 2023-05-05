@@ -201,12 +201,12 @@ async def mediaAdd(originalMessage, queues):
 			video_title = info.get('title', 'Unknown Title')
 
 		requester_name = originalMessage.author.name
-		queues[guild_id].append((audio_url, requester_name, video_title))
+		queues[guild_id].append((audio_url, requester_name, video_title, url))
 
 		await originalMessage.channel.send(f"Added {video_title} to the queue!")
 
 		if not originalMessage.guild.voice_client.is_playing():
-			await play_next(originalMessage, queues, url)
+			await play_next(originalMessage, queues)
 
 # Function will make bot pause current media
 async def mediaPause(originalMessage):
@@ -512,7 +512,7 @@ async def is_message_safe(message):
 	return not flagged
 
 
-async def play_next(originalMessage, queues, url):
+async def play_next(originalMessage, queues):
 	guild_id = originalMessage.guild.id
 	voice_client = originalMessage.guild.voice_client
 	
@@ -521,7 +521,7 @@ async def play_next(originalMessage, queues, url):
 	if not voice_client:
 		return
 	
-	audio_url, requester_name, video_title = queues[guild_id].pop(0)
+	audio_url, requester_name, video_title, video_url = queues[guild_id].pop(0)
 	voice_client.stop()
 	
 	FFMPEG_OPTIONS = {
@@ -529,8 +529,8 @@ async def play_next(originalMessage, queues, url):
 		'options': '-vn'
 	}
 		
-	await originalMessage.channel.send("**Now Playing:** " + url + "\n**Requested by:** " + originalMessage.author.display_name + " (" + originalMessage.author.name + ")")
+	await originalMessage.channel.send("**Now Playing:** " + video_url + "\n**Requested by:** " + originalMessage.author.display_name + " (" + originalMessage.author.name + ")")
 	
-	voice_client.play(FFmpegPCMAudio(executable="ffmpeg", source=audio_url, **FFMPEG_OPTIONS), after=lambda e: asyncio.run_coroutine_threadsafe(play_next(originalMessage, queues, url), voice_client.loop))
+	voice_client.play(FFmpegPCMAudio(executable="ffmpeg", source=audio_url, **FFMPEG_OPTIONS), after=lambda e: asyncio.run_coroutine_threadsafe(play_next(originalMessage, queues), voice_client.loop))
 	voice_client.source = discord.PCMVolumeTransformer(voice_client.source)
 	voice_client.source.volume = 0.1
