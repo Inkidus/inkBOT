@@ -99,15 +99,19 @@ async def freeGamesPost(originalMessage, bot, free_game_channels):
 # Function will display a list of the bot's commands or specific information concerning a single command
 async def helpPost(originalMessage):
 	async with originalMessage.channel.typing():
-		user_content  = originalMessage.content[12:].strip()
+		user_content = originalMessage.content[12:].strip()
 		if not user_content:
 			await originalMessage.channel.send(DEFAULT_HELP)
+		elif user_content.lower() == 'forget':
+			await originalMessage.channel.send(FORGET_HELP)
 		elif user_content.lower() == 'become':
 			await originalMessage.channel.send(BECOME_HELP)
 		elif user_content.lower() == 'select':
 			await originalMessage.channel.send(SELECT_HELP)
-		elif user_content.lower() == 'forget':
-			await originalMessage.channel.send(FORGET_HELP)
+		elif user_content.lower() == 'session' or user_content.lower() == 'session start':
+			await originalMessage.channel.send(SESSION_HELP)
+		elif user_content.lower() == 'endsession' or user_content.lower() == 'session stop':
+			await originalMessage.channel.send(ENDSESSION_HELP)
 		elif user_content.lower() == 'draw':
 			await originalMessage.channel.send(DRAW_HELP)
 		elif user_content.lower() == 'join':
@@ -167,7 +171,7 @@ async def ttsSpeak(originalMessage):
 	elif not originalMessage.guild.voice_client:
 		await originalMessage.channel.send("Sorry, I don't think I'm in a voice chat right now")
 	else:
-		user_content  = originalMessage.content[11:].strip()
+		user_content = originalMessage.content[11:].strip()
 		await text_to_speech(user_content, originalMessage)
 
 # Function will make the bot stream audio using yt-dlp
@@ -176,7 +180,7 @@ async def mediaAdd(originalMessage, queues):
 		guild_id = originalMessage.guild.id
 		if guild_id not in queues:
 			queues[guild_id] = []
-		
+
 		if not originalMessage.author.voice:
 			await originalMessage.channel.send("Sorry, you don't seem to be in a voice chat I can access")
 			return
@@ -189,7 +193,8 @@ async def mediaAdd(originalMessage, queues):
 			'format': 'bestaudio/best',
 			'noplaylist': False,
 			'quiet': True,
-			'age_limit': 17
+			'age_limit': 17,
+			'extract_flat': 'in_playlist,is_live'
 		}
 
 		url = originalMessage.content[12:].strip()
@@ -197,13 +202,28 @@ async def mediaAdd(originalMessage, queues):
 
 		with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 			info = ydl.extract_info(url, download=False)
-			audio_url = info.get('url')
-			video_title = info.get('title', 'Unknown Title')
 
-		requester_name = originalMessage.author.name
-		queues[guild_id].append((audio_url, requester_name, video_title, url))
+			# If livestream, do nothing
+			is_live = info.get('is_live', False)
+			if is_live:
+				await originalMessage.channel.send("Sorry, I can't play livestreams")
+				return
 
-		await originalMessage.channel.send(f"Added {video_title} to the queue!")
+			# If playlist, add all
+			if "entries" in info:
+				await originalMessage.channel.send("Playlist detected. Adding songs...")
+				for entry in info["entries"]:
+					audio_url = entry.get('url')
+					video_title = entry.get('title', 'Unknown Title')
+					video_url = entry.get('webpage_url')
+					await add_to_queue(originalMessage, queues, audio_url, video_title, video_url)
+
+			# If single video, add
+			else:
+				audio_url = info.get('url')
+				video_title = info.get('title', 'Unknown Title')
+				video_url = info.get('webpage_url')
+				await add_to_queue(originalMessage, queues, audio_url, video_title, video_url)
 
 		if not originalMessage.guild.voice_client.is_playing():
 			await play_next(originalMessage, queues)
@@ -241,11 +261,11 @@ async def mediaStop(originalMessage, queues):
 		await originalMessage.channel.send("Sorry, I don't seem to be playing anything right now")
 		return
 	
-	queues[guild_id] = []  # Clear the queue for the guild
+	queues[guild_id] = [] # Clear the queue for the guild
 	voice_client.stop()
 
 # Function will make the bot skip to the next item in the queue
-async def mediaSkip(originalMessage):
+async def mediaSkip(originalMessage, queues):
 	guild_id = originalMessage.guild.id
 	voice_client = originalMessage.guild.voice_client
 
@@ -255,7 +275,7 @@ async def mediaSkip(originalMessage):
 
 	voice_client.stop()
 	await originalMessage.channel.send("Skipping to the next item...")
-	await play_next(guild_id)
+	await play_next(guild_id, queues)
 
 # Function will make the bot show the current queue
 async def mediaQueue(originalMessage, queues):
@@ -267,8 +287,8 @@ async def mediaQueue(originalMessage, queues):
 			await originalMessage.channel.send("The queue is currently empty")
 			return
 
-		queue_text = "**Current Queue:**\n```md\n"
-		for i, (audio_url, requester_name, video_title) in enumerate(queue, start=1):
+		queue_text = "**Coming Up:**\n```md\n"
+		for i, (audio_url, requester_name, video_title, video_url) in enumerate(queue, start=1):
 			queue_text += f"{i}. {video_title} - Requested by: {requester_name}\n"
 		queue_text += "```"
 
@@ -298,9 +318,9 @@ async def chatForget(originalMessage, chat_histories):
 	async with originalMessage.channel.typing():
 		if originalMessage.channel.id in chat_histories:
 			if originalMessage.content.lower().startswith('inkbot4'):
-				user_content  = originalMessage.content[15:].strip()
+				user_content = originalMessage.content[15:].strip()
 			elif originalMessage.content.lower().startswith('inkbot'):
-				user_content  = originalMessage.content[14:].strip()
+				user_content = originalMessage.content[14:].strip()
 			
 			if not user_content:
 				chat_histories.pop(originalMessage.channel.id)
@@ -319,9 +339,9 @@ async def chatBecome(originalMessage, chat_histories):
 		logging.info(f"User ID: {originalMessage.author.id} - Submitted New Personality: {originalMessage.content}\n")
 		
 		if originalMessage.content.lower().startswith('inkbot4:'):
-			newPersonality  = originalMessage.content[15:].strip()
+			newPersonality = originalMessage.content[15:].strip()
 		elif originalMessage.content.lower().startswith('inkbot:'):
-			newPersonality  = originalMessage.content[14:].strip()
+			newPersonality = originalMessage.content[14:].strip()
 		else:
 			newPersonality = originalMessage.content
 
@@ -345,32 +365,45 @@ async def chatSelect(originalMessage, chatHistories):
 		tempMessage = originalMessage
 	
 		if originalMessage.content.lower().startswith('inkbot4:'):
-			user_content  = originalMessage.content[15:].strip()
+			user_content = originalMessage.content[15:].strip()
 		elif originalMessage.content.lower().startswith('inkbot:'):
-			user_content  = originalMessage.content[14:].strip()
+			user_content = originalMessage.content[14:].strip()
+		else:
+			user_content = originalMessage.content
 	
 		if not user_content:
 			await originalMessage.channel.send("Please include the pre-defined personality you would like me to adopt.")
 		elif user_content.lower() == 'original':
 			await originalMessage.channel.send("Setting predefined personality: original.")
 			tempMessage.content = SELECT_ORIGINAL
-			await chatBecome(tempMessage, chatHistories)
 		elif user_content.lower() == 'art prompt':
 			await originalMessage.channel.send("Setting predefined personality: art prompt generator")
 			tempMessage.content = SELECT_ARTPROMPT
-			await chatBecome(tempMessage, chatHistories)
 		elif user_content.lower() == 'lovesick':
 			await originalMessage.channel.send("Setting predefined personality: lovesick")
 			tempMessage.content = SELECT_LOVESICK
-			await chatBecome(tempMessage, chatHistories)
 		elif user_content.lower() == 'argument':
 			await originalMessage.channel.send("Setting predefined personality: argument")
 			tempMessage.content = SELECT_ARGUMENT
-			await chatBecome(tempMessage, chatHistories)
-			
 		else:
 			await originalMessage.channel.send("Sorry, that does not appear to be one of my pre-defined personalities.")
+			return
 
+		await chatBecome(tempMessage, chatHistories)
+
+
+# Function will add the channel to a list of sessions
+async def chatSession(originalMessage, sessionList):
+	sessionList.add(originalMessage.channel.id)
+	await originalMessage.channel.send("Session started. All non-commands will now be considered prompts for the chatbot. Use `inkbot: session stop` to end your session")
+
+# Function will remove the channel from the list of sessions
+async def chatSessionEnd(originalMessage, sessionList):
+	if originalMessage.channel.id in sessionList:
+		sessionList.remove(originalMessage.channel.id)
+		await originalMessage.channel.send("Session has ended. Chatbot will no longer consider non-commands as prompts. Use `inkbot: session start` to begin a new session")
+	else:
+		await originalMessage.channel.send("No session is currently in place")
 
 # Function will generate and post an image in response to an input prompt
 async def dallePost(originalMessage):
@@ -396,13 +429,15 @@ async def chatPost(originalMessage, chat_histories, default_system_message, mode
 
 		if isPromptSafe:
 			if originalMessage.content.lower().startswith('inkbot,'):
-				user_content  = originalMessage.content[7:].strip()
-			if originalMessage.content.lower().startswith('inkbot4,'):
-				user_content  = originalMessage.content[8:].strip()
-			if originalMessage.content.lower().startswith('dinklebot,'):
-				user_content  = originalMessage.content[10:].strip()
-			if originalMessage.content.lower().startswith('dinklebot4,'):
-				user_content  = originalMessage.content[11:].strip()
+				user_content = originalMessage.content[7:].strip()
+			elif originalMessage.content.lower().startswith('inkbot4,'):
+				user_content = originalMessage.content[8:].strip()
+			elif originalMessage.content.lower().startswith('dinklebot,'):
+				user_content = originalMessage.content[10:].strip()
+			elif originalMessage.content.lower().startswith('dinklebot4,'):
+				user_content = originalMessage.content[11:].strip()
+			else:
+				user_content = originalMessage.content
 			
 			logging.info(f"User ID: {originalMessage.author.id} - Submitted Prompt: {user_content}\n")
 			
@@ -511,6 +546,11 @@ async def is_message_safe(message):
 	logging.info(f"Were scanned contents flagged? {flagged}\n")
 	return not flagged
 
+async def add_to_queue(originalMessage, queues, audio_url, video_title, video_url):
+	guild_id = originalMessage.guild.id
+	requester_name = originalMessage.author.name
+	queues[guild_id].append((audio_url, requester_name, video_title, video_url))
+	await originalMessage.channel.send(f"Added {video_title} to the queue!")
 
 async def play_next(originalMessage, queues):
 	guild_id = originalMessage.guild.id
@@ -534,3 +574,17 @@ async def play_next(originalMessage, queues):
 	voice_client.play(FFmpegPCMAudio(executable="ffmpeg", source=audio_url, **FFMPEG_OPTIONS), after=lambda e: asyncio.run_coroutine_threadsafe(play_next(originalMessage, queues), voice_client.loop))
 	voice_client.source = discord.PCMVolumeTransformer(voice_client.source)
 	voice_client.source.volume = 0.1
+
+async def checkAlone(guild, voice_client):
+	members = voice_client.channel.members
+	non_bots = [member for member in members if not member.bot]
+	
+	# If no humans present, check again in 20 seconds. If no humans present then, leave
+	await asyncio.sleep(20)
+	members = voice_client.channel.members
+	non_bots = [member for member in members if not member.bot]
+	
+	if len(non_bots) == 0:
+		while voice_client.is_playing():
+			voice_client.stop()
+		await voice_client.disconnect()
