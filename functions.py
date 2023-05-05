@@ -67,7 +67,7 @@ async def coinPost(originalMessage):
 			await originalMessage.channel.send(f"Flipping a coin...\nHuh, the coin disappeared...")
 
 # Function will read the contents of freegames.txt and use them to distribute a list of temporarily free games to a predefined list
-async def freeGamesPost(originalMessage, client, free_game_channels):
+async def freeGamesPost(originalMessage, bot, free_game_channels):
 	async with originalMessage.channel.typing():
 		with open("freegames.txt", "r") as file:
 			lines = file.readlines()
@@ -93,7 +93,7 @@ async def freeGamesPost(originalMessage, client, free_game_channels):
 				response += f"{deal}\n"
 
 		for channel_id in free_game_channels:
-			target_channel = client.get_channel(channel_id)
+			target_channel = bot.get_channel(channel_id)
 			await target_channel.send(response)
 
 # Function will display a list of the bot's commands or specific information concerning a single command
@@ -118,30 +118,45 @@ async def helpPost(originalMessage):
 			await originalMessage.channel.send(TTS_HELP)
 		elif user_content.lower() == 'play':
 			await originalMessage.channel.send(PLAY_HELP)
+		elif user_content.lower() == 'pause':
+			await originalMessage.channel.send(PAUSE_HELP)
+		elif user_content.lower() == 'resume':
+			await originalMessage.channel.send(RESUME_HELP)
+		elif user_content.lower() == 'stop':
+			await originalMessage.channel.send(STOP_HELP)
+		elif user_content.lower() == 'skip':
+			await originalMessage.channel.send(SKIP_HELP)
+		elif user_content.lower() == 'queue':
+			await originalMessage.channel.send(QUEUE_HELP)
+		elif user_content.lower() == 'cancel':
+			await originalMessage.channel.send(CANCEL_HELP)
 		else:
 			await originalMessage.channel.send(UNKNOWN_HELP)
 
 # Function will make the bot join the voice channel of the sender, if they are in one accessible by the bot
 async def vcJoin(originalMessage):
-	logging.info(f"User ID: {originalMessage.author.id} - Requested joining of voice channel: {originalMessage.author.voice.channel}\n")
 	async with originalMessage.channel.typing():
 		if originalMessage.author.voice is not None:
 			try:
-				await originalMessage.channel.send(f"Joining your voice chat")
 				voice_client = await originalMessage.author.voice.channel.connect()
+				logging.info(f"User ID: {originalMessage.author.id} - Successfully Requested joining of voice channel: {originalMessage.author.voice.channel}\n")
+				await originalMessage.channel.send(f"Joining your voice chat")
 			except discord.errors.ClientException:
+				logging.info(f"User ID: {originalMessage.author.id} - Unsuccessfully Requested joining of voice channel: {originalMessage.author.voice.channel}\n")
 				await originalMessage.channel.send("Sorry, looks like I'm in another voice chat")
 		else:
 			await originalMessage.channel.send("Sorry, you don't seem to be in a voice chat I can access")
 
 # Function will make the bot leave its current voice channel, if it is in one
-async def vcLeave(originalMessage):
-	logging.info(f"User ID: {originalMessage.author.id} - Requested leaving of voice channel: {originalMessage.author.voice.channel}\n")
+async def vcLeave(originalMessage, mediaQueues):
 	async with originalMessage.channel.typing():
 		if originalMessage.guild.voice_client:
-			await originalMessage.channel.send(f"Alright, leaving my current voice chat...")
+			logging.info(f"User ID: {originalMessage.author.id} - Requested leaving of voice channel\n")
+			mediaStop(originalMessage, mediaQueues)
+			await originalMessage.channel.send(f"Leaving my current voice chat...")
 			await originalMessage.guild.voice_client.disconnect()
 		else:
+			logging.info(f"User ID: {originalMessage.author.id} - Unsuccessfully Requested leaving of voice channel\n")
 			await originalMessage.channel.send("Sorry, I don't think I'm in a voice chat right now")
 
 # Function will make the bot speak some words out loud in a voice channel
@@ -155,70 +170,128 @@ async def ttsSpeak(originalMessage):
 		user_content  = originalMessage.content[11:].strip()
 		await text_to_speech(user_content, originalMessage)
 
-async def mediaPlay(originalMessage):
+# Function will make the bot stream audio using yt-dlp
+async def mediaAdd(originalMessage, queues):
 	async with originalMessage.channel.typing():
+		guild_id = originalMessage.guild.id
+		if guild_id not in queues:
+			queues[guild_id] = []
+		
+		if not originalMessage.author.voice:
+			await originalMessage.channel.send("Sorry, you don't seem to be in a voice chat I can access")
+			return
+		if not originalMessage.guild.voice_client:
+			await vcJoin(originalMessage)
+			await mediaAdd(originalMessage, queues)
+			return
+
 		ydl_opts = {
-			'format': 'bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio',
+			'format': 'bestaudio/best',
 			'noplaylist': False,
 			'quiet': True,
 			'age_limit': 17
 		}
-		
-		url = originalMessage.content[12:].strip()
-		
-		logging.info(f"User ID: {originalMessage.author.id} - Requested Media: {url}\n")
 
-		await originalMessage.channel.send("**Requested by: **" + originalMessage.author.display_name + " (" + originalMessage.author.name + ")" + "\n**Media: ** " + url)
+		url = originalMessage.content[12:].strip()
+		logging.info(f"User ID: {originalMessage.author.id} - Requested Media: {url}\n")
 
 		with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 			info = ydl.extract_info(url, download=False)
-			audio_url = info['url']
+			audio_url = info.get('url')
+			video_title = info.get('title', 'Unknown Title')
 
-		voice_client = originalMessage.guild.voice_client
+		requester_name = originalMessage.author.name
+		queues[guild_id].append((audio_url, requester_name, video_title))
+
+		await originalMessage.channel.send(f"Added {video_title} to the queue!")
+
+		if not originalMessage.guild.voice_client.is_playing():
+			await play_next(originalMessage, queues, url)
+
+# Function will make bot pause current media
+async def mediaPause(originalMessage):
+	voice_client = originalMessage.guild.voice_client
+
+	if not voice_client or not voice_client.is_playing():
+		await originalMessage.channel.send("Sorry, I don't seem to be playing anything right now")
+		return
+
+	voice_client.pause()
+	await originalMessage.channel.send("Pausing your media...")
+
+# Function will make bot continue current media
+async def mediaResume(originalMessage):
+	voice_client = originalMessage.guild.voice_client
+
+	if not voice_client or not voice_client.is_paused():
+		await originalMessage.channel.send("Sorry, I don't seem to be paused right now")
+		return
+
+	voice_client.resume()
+	await originalMessage.channel.send("Resuming your media...")
+
+# Function will make the bot stop current media
+async def mediaStop(originalMessage, queues):
+	guild_id = originalMessage.guild.id
+	voice_client = originalMessage.guild.voice_client
+	
+	await originalMessage.channel.send("Ending audio and clearing the queue...")
+	
+	if not voice_client or not (voice_client.is_playing() or voice_client.is_paused()):
+		await originalMessage.channel.send("Sorry, I don't seem to be playing anything right now")
+		return
+	
+	queues[guild_id] = []  # Clear the queue for the guild
+	voice_client.stop()
+
+# Function will make the bot skip to the next item in the queue
+async def mediaSkip(originalMessage):
+	guild_id = originalMessage.guild.id
+	voice_client = originalMessage.guild.voice_client
+
+	if not voice_client or not voice_client.is_playing():
+		await originalMessage.channel.send("Sorry, I don't seem to be playing anything right now")
+		return
 
 	voice_client.stop()
-	FFMPEG_OPTIONS = {'options': '-vn'}
-	voice_client.play(FFmpegPCMAudio(executable="ffmpeg", source=audio_url, **FFMPEG_OPTIONS))
-	voice_client.source = discord.PCMVolumeTransformer(voice_client.source)
-	voice_client.source.volume = 0.1
+	await originalMessage.channel.send("Skipping to the next item...")
+	await play_next(guild_id)
 
-
-async def mediaPlayAlternative(originalMessage):
+# Function will make the bot show the current queue
+async def mediaQueue(originalMessage, queues):
 	async with originalMessage.channel.typing():
-		ydl_opts = {
-			'format': 'bestaudio/best',
-			'quiet': True,
-			'age_limit': 17,
-			'outtmpl': 'downloads/%(title)s.%(ext)s',
-			'postprocessors': [{
-				'key': 'FFmpegExtractAudio',
-				'preferredcodec': 'mp3',
-				'preferredquality': '192',
-			}],
-		}
+		guild_id = originalMessage.guild.id
+		queue = queues.get(guild_id, [])
 
-		url = originalMessage.content[12:].strip()
-		
-		logging.info(f"User ID: {originalMessage.author.id} - Requested Media: {url}\n")
+		if not queue:
+			await originalMessage.channel.send("The queue is currently empty")
+			return
 
-		await originalMessage.channel.send("**Requested by: **" + originalMessage.author.display_name + " (" + originalMessage.author.name + ")" + "\n**Media: ** " + url)
+		queue_text = "**Current Queue:**\n```md\n"
+		for i, (audio_url, requester_name, video_title) in enumerate(queue, start=1):
+			queue_text += f"{i}. {video_title} - Requested by: {requester_name}\n"
+		queue_text += "```"
 
-		with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-			info = ydl.extract_info(url, download=False)
-			ydl.download([url])
+		await originalMessage.channel.send(queue_text)
 
-		audio_file = f"downloads/{info['title']}.mp3"
-		voice_client = originalMessage.guild.voice_client
+# Function will remove the item at a given slot from the queue
+async def mediaCancel(originalMessage, queues):
+	guild_id = originalMessage.guild.id
+	serverQueue = queues.get(guild_id, [])
+	
+	index = int(originalMessage.content[14:].strip())
 
-	voice_client.stop()
-	FFMPEG_OPTIONS = {'options': '-vn'}
-	voice_client.play(FFmpegPCMAudio(executable="ffmpeg", source=audio_file, **FFMPEG_OPTIONS))
-	voice_client.source = discord.PCMVolumeTransformer(voice_client.source)
-	voice_client.source.volume = 0.1
+	if not serverQueue:
+		await originalMessage.channel.send("The queue is currently empty")
+		return
 
-	# Delete the audio file after playing it
-	import os
-	os.remove(audio_file)
+	try:
+		removed_item = serverQueue.pop(index - 1)
+		await originalMessage.channel.send(f"Removed item #{index} from the queue.")
+		await mediaQueue(originalMessage, queues)
+	except IndexError:
+		await originalMessage.channel.send(f"Sorry, couldn't item #{index}.")
+		await mediaQueue(originalMessage, queues)
 
 # Function will clear part/all of the message history the bot has stored for a specific channel
 async def chatForget(originalMessage, chat_histories):
@@ -437,3 +510,27 @@ async def is_message_safe(message):
 	flagged = results[0]["flagged"]
 	logging.info(f"Were scanned contents flagged? {flagged}\n")
 	return not flagged
+
+
+async def play_next(originalMessage, queues, url):
+	guild_id = originalMessage.guild.id
+	voice_client = originalMessage.guild.voice_client
+	
+	if not queues[guild_id]:
+		return
+	if not voice_client:
+		return
+	
+	audio_url, requester_name, video_title = queues[guild_id].pop(0)
+	voice_client.stop()
+	
+	FFMPEG_OPTIONS = {
+		'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+		'options': '-vn'
+	}
+		
+	await originalMessage.channel.send("**Now Playing:** " + url + "\n**Requested by:** " + originalMessage.author.display_name + " (" + originalMessage.author.name + ")")
+	
+	voice_client.play(FFmpegPCMAudio(executable="ffmpeg", source=audio_url, **FFMPEG_OPTIONS), after=lambda e: asyncio.run_coroutine_threadsafe(play_next(originalMessage, queues, url), voice_client.loop))
+	voice_client.source = discord.PCMVolumeTransformer(voice_client.source)
+	voice_client.source.volume = 0.1

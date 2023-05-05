@@ -40,28 +40,30 @@ Candice will be able to think for itself and decide whether or not it agrees or 
 # Strings for the help command
 
 DEFAULT_HELP = f"""
-__Here are the commands I can run at this time. Note that all of the following are case-insensitive. For more information, use `inkbot, help <command>`:__
+__Here are the commands I can run at this time. All of the following are case-insensitive. For more info, use `inkbot, help <command>`:__
+**HELP**
 `inkbot, help <command>`
-
+**CHANCE**
 `inkbot: coinflip`
 `inkbot: roll <integer>`
-
+**CHATBOT** (use "inkbot4" instead of "inkbot" for GPT-4)
 `inkbot, <prompt>`
 `inkbot: become <prompt>`
 `inkbot: select <selection>`
 `inkbot: forget <integer>`
-
-`inkbot4, <prompt>`
-`inkbot4: become <prompt>`
-`inkbot4: select <selection>`
-`inkbot4: forget <integer>`
-
+**DALL-E**
 `inkbot: draw <prompt>`
-
+**VOICE CHANNELS**
 `inkbot: join`
 `inkbot: leave`
 `inkbot: tts <message>`
 `inkbot: play <url>`
+`inkbot: pause`
+`inkbot: resume`
+`inkbot: stop`
+`inkbot: skip`
+`inkbot: queue`
+`inkbot: cancel <slot>`
 
 OpenAI's usage policies for the chatbot and Dall-E can be found below. My filters are imperfect, so please do not attempt to bypass them.
 <https://openai.com/policies/usage-policies>
@@ -135,12 +137,66 @@ inkbot: tts This text is being read out loud by ink bot.
 """
 
 PLAY_HELP = f"""
-This command makes the bot play audio from some url in a discord voice channel. The bot must already be in a voice channel for this command to work. Youtube playlists currently do not work.
+This command adds media from some url to a queue which will be played in a discord voice channel.
+NOTE: Youtube playlists currently do not work.
+
+Here's an example of how this command can be used:
+```
+inkbot: play https://www.youtube.com/watch?v=dQw4w9WgXcQ
+```
+"""
+
+PAUSE_HELP = f"""
+This command pauses media playback.
+
+Here's an example of how this command can be used:
+```
+inkbot: pause
+```
+"""
+
+RESUME_HELP = f"""
+This command resumes media playback after it has been paused.
+
+Here's an example of how this command can be used:
+```
+inkbot: resume
+```
+"""
+
+STOP_HELP = f"""
+This command ends audio playback and completely clears the media playback queue.
+Here's an example of how this command can be used:
+```
+inkbot: stop
+```
+"""
+
+SKIP_HELP = f"""
+This command makes the bot begin the next item in the server's media playback queue.
+
+Here's an example of how this command can be used:
+```
+inkbot: skip
+```
+"""
+
+QUEUE_HELP = f"""
+This command makes the bot send the current media playback queue for the server.
+
+Here's an example of how this command can be used:
+```
+inkbot: queue
+```
+"""
+
+CANCEL_HELP = f"""
+This command removes a specified slot from the queue, then displays the new queue.
 
 Here's two examples of how this command can be used:
 ```
-inkbot: play https://www.youtube.com/watch?v=dQw4w9WgXcQ
-inkbot: play <https://www.youtube.com/watch?v=dQw4w9WgXcQ>
+inkbot: cancel 1
+inkbot: cancel 3
 ```
 """
 

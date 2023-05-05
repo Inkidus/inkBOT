@@ -28,6 +28,7 @@ free_game_channels = [
 # Establish a default chatbot memory and the default contents for each channel
 chatHistories = OrderedDict()
 chat4Histories = OrderedDict()
+mediaQueues = {}
 defaultHistoryEntry = [
 	{"role": "system", "content": DEFAULT_PERSONALITY},
 	{"role": "system", "content": TEXT_FORMAT},
@@ -39,97 +40,89 @@ intents.message_content = True
 intents.voice_states = True
 intents.typing = False
 intents.presences = False
-client = discord.Client(intents=intents, status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
-
-# Set bot prefix
-bot = commands.Bot(command_prefix=':', intents=intents)
+bot = commands.Bot(command_prefix='$', intents=intents, status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
 
 # Establish behavior for when the bot is ready
-@client.event
+@bot.event
 async def on_ready():
-	logging.info(f"Successfully logged in as {client.user}\n")
+	logging.info(f"Successfully logged in as {bot.user}\n")
 
 # Establish behavior for when the bot receives a message, run corresponding function depending on contents and author
-@client.event
+@bot.event
 async def on_message(message):
-	if message.author == client.user:
+	if message.author == bot.user:
 		return
-
+	
 	elif message.content.lower().startswith('inkbot: roll') or message.content.lower().startswith('inkbot: dice'):
-		await client.change_presence(status=discord.Status.dnd, activity=discord.Game('thinking...'))
 		await dicePost(message)
-		await client.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
 	elif message.content.lower() == 'inkbot: coin' or message.content.lower() == 'inkbot: coinflip' or message.content.lower() == 'inkbot: flipcoin':
-		await client.change_presence(status=discord.Status.dnd, activity=discord.Game('thinking...'))
 		await coinPost(message)
-		await client.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
 		
 	elif message.content.lower() == 'send free games' and message.author.id == free_game_ids:
-		await client.change_presence(status=discord.Status.dnd, activity=discord.Game('thinking...'))
-		await freeGamesPost(message, client, free_game_channels)
-		await client.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
+		await freeGamesPost(message, bot, free_game_channels)
 		
 	elif message.content.lower().startswith('inkbot: help'):
-		await client.change_presence(status=discord.Status.dnd, activity=discord.Game('thinking...'))
 		await helpPost(message)
-		await client.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
 		
 	elif message.content.lower() == 'inkbot: join':
-		await client.change_presence(status=discord.Status.dnd, activity=discord.Game('thinking...'))
 		await vcJoin(message)
-		await client.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
 	elif message.content.lower() == 'inkbot: leave':
-		await client.change_presence(status=discord.Status.dnd, activity=discord.Game('thinking...'))
-		await vcLeave(message)
-		await client.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
+		await vcLeave(message, mediaQueues)
 	elif message.content.lower().startswith('inkbot: tts'):
-		await client.change_presence(status=discord.Status.dnd, activity=discord.Game('thinking...'))
 		await ttsSpeak(message)
-		await client.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
 	elif message.content.lower().startswith('inkbot: play'):
-		await mediaPlay(message)
-	elif message.content.lower().startswith('inkbot: playAlternative'):
-		await mediaPlayAlternative(message)
+		await mediaAdd(message, mediaQueues)
+	elif message.content.lower() == 'inkbot: pause':
+		await mediaPause(message)
+	elif message.content.lower() == 'inkbot: resume':
+		await mediaResume(message)
+	elif message.content.lower() == 'inkbot: stop':
+		await mediaStop(message, mediaQueues)
+	elif message.content.lower() == 'inkbot: skip':
+		await mediaSkip(message)
+	elif message.content.lower() == 'inkbot: queue':
+		await mediaQueue(message, mediaQueues)
+	elif message.content.lower().startswith('inkbot: cancel'):
+		await mediaCancel(message, mediaQueues)
 		
 	elif message.content.lower().startswith('inkbot: draw'):
-		await client.change_presence(status=discord.Status.dnd, activity=discord.Game('thinking...'))
+		await bot.change_presence(status=discord.Status.dnd, activity=discord.Game('drawing...'))
 		await dallePost(message)
-		await client.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
+		await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
 		
 	elif message.content.lower().startswith('inkbot: forget'):
-		await client.change_presence(status=discord.Status.dnd, activity=discord.Game('thinking...'))
+		await bot.change_presence(status=discord.Status.dnd, activity=discord.Game('forgetting...'))
 		await chatForget(message, chatHistories)
-		await client.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
+		await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
 	elif message.content.lower().startswith('inkbot: become'):
-		await client.change_presence(status=discord.Status.dnd, activity=discord.Game('thinking...'))
+		await bot.change_presence(status=discord.Status.dnd, activity=discord.Game('becoming...'))
 		await chatBecome(message, chatHistories)
-		await client.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
+		await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
 	elif message.content.lower().startswith('inkbot: select'):
-		await client.change_presence(status=discord.Status.dnd, activity=discord.Game('thinking...'))
+		await bot.change_presence(status=discord.Status.dnd, activity=discord.Game('selecting...'))
 		await chatSelect(message, chatHistories)
-		await client.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
+		await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
 	elif message.content.lower().startswith('inkbot,') or message.content.lower().startswith('dinklebot,'):
-		await client.change_presence(status=discord.Status.dnd, activity=discord.Game('thinking...'))
+		await bot.change_presence(status=discord.Status.dnd, activity=discord.Game('writing...'))
 		await chatPost(message, chatHistories, defaultHistoryEntry, "gpt-3.5-turbo")
-		await client.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
+		await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
 		
 	elif message.content.lower().startswith('inkbot4: forget'):
-		await client.change_presence(status=discord.Status.dnd, activity=discord.Game('thinking...'))
+		await bot.change_presence(status=discord.Status.dnd, activity=discord.Game('forgetting...'))
 		await chatForget(message, chat4Histories)
-		await client.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
+		await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
 	elif message.content.lower().startswith('inkbot4: become'):
-		await client.change_presence(status=discord.Status.dnd, activity=discord.Game('thinking...'))
+		await bot.change_presence(status=discord.Status.dnd, activity=discord.Game('becoming...'))
 		await chatBecome(message, chat4Histories)
-		await client.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
+		await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
 	elif message.content.lower().startswith('inkbot4: select'):
-		await client.change_presence(status=discord.Status.dnd, activity=discord.Game('thinking...'))
+		await bot.change_presence(status=discord.Status.dnd, activity=discord.Game('selecting...'))
 		await chatSelect(message, chat4Histories)
-		await client.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
+		await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
 	elif message.content.lower().startswith('inkbot4,') or message.content.lower().startswith('dinklebot4,'):
-		await client.change_presence(status=discord.Status.dnd, activity=discord.Game('thinking...'))
+		await bot.change_presence(status=discord.Status.dnd, activity=discord.Game('writing...'))
 		await chatPost(message, chat4Histories, defaultHistoryEntry, "gpt-4")
-		await client.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
-
+		await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
 
 # Start bot
-client.run(DISCORD_TOKEN)
+bot.run(DISCORD_TOKEN)
