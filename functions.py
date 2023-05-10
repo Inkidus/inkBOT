@@ -19,7 +19,6 @@ from discord import FFmpegPCMAudio
 from openai.error import InvalidRequestError
 from openai.error import RateLimitError
 
-
 # Establish default entry for chatbot memory
 defaultHistoryEntry = [
 	{"role": "system", "content": DEFAULT_PERSONALITY},
@@ -456,7 +455,7 @@ async def chatSession(originalMessage, modelRequested):
 	if ((dictionaryKey in chatSessions) or ((dictionaryKey * -1) in chatSessions)):
 		await originalMessage.channel.send("It seems like a session is already running in this channel, please end the current session before starting a new one")
 	else:
-		chatSessions[dictionaryKey] = (1, 0.1, 0, 0, False, "inkBOT", "https://cdn.discordapp.com/attachments/621168133079826434/1105321987687067668/discord-avatar-512-PY9SY.png")
+		chatSessions[dictionaryKey] = (1, 0.1, 0, 0, False, "inkBOT", "https://cdn.discordapp.com/embed/avatars/0.png")
 		saveSessions()
 		
 		await originalMessage.channel.send("Session started. All non-commands will now be considered prompts for the chatbot. Use `inkbot: session stop` to end your session")
@@ -677,7 +676,6 @@ async def chatPost(originalMessage, modelRequested):
 		else:
 			logging.info(f"User ID: {originalMessage.author.id} - Submitted Unsafe Prompt: {originalMessage.content}\n")
 			await originalMessage.channel.send("Sorry, your prompt was unsafe. Please review the usage policy: <https://openai.com/policies/usage-policies>")
-
 
 async def generateCompletion(dictionaryKey, completionText, modelWanted, tempWanted, toppWanted, presenceWanted, frequencyWanted):
 	try:

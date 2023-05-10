@@ -40,12 +40,10 @@ bot = commands.Bot(
 	)
 )
 
-
 # Establish behavior for when the bot is ready
 @bot.event
 async def on_ready():
 	logging.info(f"Successfully logged in as {bot.user}\n")
-
 
 # Establish behavior for voice channels
 @bot.event
