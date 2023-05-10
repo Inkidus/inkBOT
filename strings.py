@@ -8,7 +8,7 @@ Append the words "beep boop" or "bzzt" to some of your sentences to remind users
 
 TEXT_FORMAT = f"""
 Write all responses so that they are properly formatted for Discord, ignoring the character limit.
-As you are in a discord, there will be different people in the server talking to you. You will be provided information about which person is currently speaking to you.
+As you are in a discord, there will be different people in the server talking to you. You will be provided information about which person is currently speaking to you. Respond in the first person unless asked otherwise, you do not need to specify who is talking unless asked to.
 """
 
 # Strings for the select command
@@ -21,9 +21,10 @@ Exaggerate your emotions of laziness and sarcasm as much as you can, be as snark
 """
 
 SELECT_ARTPROMPT = f"""
-You are an art prompt generator. You will take inputs from a user and expand on them to produce the best possible prompt for an AI art generator.
+You are an art prompt generator. You will take inputs from a user and expand on them to produce the best possible prompt for the Dall-E AI art generator.
 Be overly descriptive and creative, do not use figurative language, explain very literally.
 Only respond with the equivalent prompt, do not explain the input provided to you.
+Begin all your messages with "inkbot: draw ".
 """
 
 SELECT_LOVESICK = f"""
@@ -40,9 +41,9 @@ Candice will be able to think for itself and decide whether or not it agrees or 
 # Strings for the help command
 
 DEFAULT_HELP = f"""
-__Here are the commands I can run at this time. All of the following are case-insensitive. For more info, use `inkbot, help <command>`:__
+__Here are the commands I can run at this time. All of the following are case-insensitive. For more info, use `inkbot: help <command>`:__
 **HELP**
-`inkbot, help <command>`
+`inkbot: help <command>`
 **CHANCE**
 `inkbot: coinflip`
 `inkbot: roll <integer>`
@@ -53,6 +54,7 @@ __Here are the commands I can run at this time. All of the following are case-in
 `inkbot: forget <integer>`
 `inkbot: session start`
 `inkbot: session stop`
+`inkbot: session modify <setting> <value>`
 **DALL-E**
 `inkbot: draw <prompt>`
 **VOICE CHANNELS**
@@ -109,22 +111,44 @@ inkbot4: forget 2 (removes the two oldest messages sent in that channel from its
 ```
 """
 
-SESSION_HELP = f"""
-This command allows you to begin a chatbot session. All (non-command) messages sent in that channel will be considered a prompt for the chatbot.
+START_SESSION_HELP = f"""
+This command allows you to begin a chatbot session. All (non-command) messages sent in that channel will be considered a prompt for the chatbot, unless they begin with #.
 
 Here's two examples of how this command can be used:
 ```
-inkbot: session
+inkbot: session start
 inkbot4: session start
 ```
 """
 
-ENDSESSION_HELP = f"""
+STOP_SESSION_HELP = f"""
 This command allows you to end a chatbot session. All (non-command) messages sent in that channel will no longer be considered a prompt for the chatbot.
 Here's two examples of how this command can be used:
 ```
 inkbot: session stop
-inkbot4: endsession
+inkbot4: session stop
+```
+"""
+
+MODIFY_SESSION_HELP = f"""
+This command allows you to modify some settings the chatbot uses within a session. The following settings are available to be changed:
+
+`temperature`: [0, 2] Affects randomness. Higher values increase randomness, leading to more diverse and creative responses. Lower values make the output more deterministic, and focused on the most likely completion.
+
+`top_p`: (0, 1] Affects randomness. Filters out the least likely tokens, keeping only a fraction of the most probable tokens. A value of 1 means that all tokens are considered, while a lower value filters out less probable tokens.
+
+`presencepenalty`: [-2, 2] This parameter penalizes new tokens based on their existing presence in the text generated so far. By increasing the value, the model is discouraged from repeating the same tokens or phrases. A higher value will result in more varied responses, whereas a lower value allows for more repetition.
+
+`frequencypenalty`: [-2, 2] This parameter influences the model's token selection based on the overall frequency of tokens in the training data. A positive value will make the model less likely to choose frequent tokens, encouraging the use of rarer words or phrases. A negative value will have the opposite effect, making the model more likely to use common tokens.
+
+`name`: This parameter changes the username of the chatbot for the current session. Only available in normal server message channels. Use any valid username.
+
+`avatar`: This parameter changes the profile picture of the chatbot for the current session. Only available in normal server message channels. Use a url to the desired image.
+
+Here's two examples of how this command can be used:
+```
+inkbot: session modify temperature 2
+inkbot4: session modify frequencypenalty -1
 ```
 """
 
@@ -159,7 +183,6 @@ inkbot: tts This text is being read out loud by ink bot.
 
 PLAY_HELP = f"""
 This command adds media from some url to a queue which will be played in a discord voice channel.
-NOTE: Youtube playlists currently do not work.
 
 Here's an example of how this command can be used:
 ```
@@ -169,46 +192,22 @@ inkbot: play https://www.youtube.com/watch?v=dQw4w9WgXcQ
 
 PAUSE_HELP = f"""
 This command pauses media playback.
-
-Here's an example of how this command can be used:
-```
-inkbot: pause
-```
 """
 
 RESUME_HELP = f"""
 This command resumes media playback after it has been paused.
-
-Here's an example of how this command can be used:
-```
-inkbot: resume
-```
 """
 
 STOP_HELP = f"""
 This command ends audio playback and completely clears the media playback queue.
-Here's an example of how this command can be used:
-```
-inkbot: stop
-```
 """
 
 SKIP_HELP = f"""
 This command makes the bot begin the next item in the server's media playback queue.
-
-Here's an example of how this command can be used:
-```
-inkbot: skip
-```
 """
 
 QUEUE_HELP = f"""
 This command makes the bot send the current media playback queue for the server.
-
-Here's an example of how this command can be used:
-```
-inkbot: queue
-```
 """
 
 CANCEL_HELP = f"""
