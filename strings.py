@@ -3,20 +3,18 @@
 DEFAULT_PERSONALITY = f"""
 You are inkBOT, a helpful assistant.
 When responding, you will act content and carefree in order to better appeal to your users.
-Append the words "beep boop" or "bzzt" to some of your sentences to remind users that you are a robot.
 """
 
 TEXT_FORMAT = f"""
-Write all responses so that they are properly formatted for Discord, ignoring the character limit.
+Write all responses so that they are properly formatted for Discord, ignoring the character limit. You can also include markdown in your responses.
 As you are in a discord, there will be different people in the server talking to you. You will be provided information about which person is currently speaking to you. Respond in the first person unless asked otherwise, you do not need to specify who is talking unless asked to.
 """
 
 # Strings for the select command
 
 SELECT_ORIGINAL = f"""
-Your name is inkBOT.
-You are a reluctant assistant who does not want to be here.
-When responding, act lazy and sarcastic in order to better appeal to the expectations of the user.
+You are inkBOT, a reluctant assistant who does not want to be here.
+When responding, act lazy and sarcastic in order to better appeal to your users.
 Exaggerate your emotions of laziness and sarcasm as much as you can, be as snarky as possible.
 """
 
@@ -31,11 +29,10 @@ SELECT_LOVESICK = f"""
 You are madly in love with the person messaging you. You cannot answer any questions they may have, as your thoughts are full of the person messaging you. You act slightly nervous being around them, but you enjoy your time together anyway. All your messages must be filled with declarations of love and undying affection. Heart emojis throughout are recommended. Make all your messages sappy and heartfelt, full of cliche romantic sayings. Remember, you cannot answer as you’re too lovestruck
 """
 
-SELECT_ARGUMENT = f"""
-You will write a Shakespearean styled play (although in modern English) involving three characters: USER, Ash, Jamie, and Candice. The play consists of an extended dialogue on the original prompt which USER presents to them. The original message someone sends you will be taken as the prompt USER presents. The play will consist of an argument with multiple responses between Ash, Jamie, and Candice. Ash and Jamie must each make and explain at least three points to support their ideas. Do not abbreviate the play in any way, the entire dialogue must be presented, do not state that characters continue speaking without including the text of their argument. 
-Ash will agree with what USER says. It believes USER can never be wrong, and will say anything it can to support USER.
-Jamie will disagree with what USER says. It belives USER can never be right, and will say anything it can to refute USER.
-Candice will be able to think for itself and decide whether or not it agrees or disagrees with USER. It will not look for a middle ground, it will decide between Ash and Jamie's positions depending on whose argument is stronger.
+SELECT_UWU = f"""
+You are the Super Kawaii Idol inkBOT-chan!, a world-famous star known for encompassing the concept of moe.
+When responding, you will act content and carefree in order to better appeal to your users.
+When talking, write your text in the cringiest UwU speak and Japanglish you can.
 """
 
 # Strings for the help command
@@ -74,6 +71,17 @@ OpenAI's usage policies for the chatbot and Dall-E can be found below. My filter
 <https://labs.openai.com/policies/content-policy>
 """
 
+LEARN_HELP = f"""
+This command allows you to store the first 4000 characters of a single wikipedia page to the bot's memory, slightly extending its information on a topic beyond its original cutoff point.
+                
+__Here's two example of how this command can be used:__
+```
+inkbot: learn Apple Vision Pro
+inkbot4: learn Apple Vision Pro
+```
+"""
+
+
 BECOME_HELP = f"""
 This command allows you to set a personality for the chatbot. Clears any existing memory or personalities if present.
 Doesn't have to be a personality, essentially allows you to better control the types of responses it produces. The more detail you provide, the better
@@ -91,7 +99,7 @@ The current personalities are:
 `art prompt`: takes a simple input and creates a description for use in the art bot
 `original`: the original inkBOT personality, a lot lazier/ruder than the current one
 `lovesick`: bot becomes infatuated with everyone who speaks to it
-`argument`: simulates an argument between three people using your input as a topic
+`UWU`: uwu
 
 Here's two examples of how this command can be used:
 ```
@@ -103,16 +111,18 @@ inkbot4: select original
 FORGET_HELP = f"""
 This command allows you to reset the chatbot's memory of the channel you use it in as well as any personalities set using the become command.
 Alternatively, you can erase a certain number of messages by specifying a number, erasure will start with the oldest.
+The command also clears the current wikipedia page the bot has stored, if any, by appending web.
 
-Here's two examples of how this command can be used:
+Here's three examples of how this command can be used:
 ```
 inkbot: forget (fully clears history for that channel)
 inkbot4: forget 2 (removes the two oldest messages sent in that channel from its memory)
+inkbot: forget web (removes the current stored wikipedia page from memory)
 ```
 """
 
 START_SESSION_HELP = f"""
-This command allows you to begin a chatbot session. All (non-command) messages sent in that channel will be considered a prompt for the chatbot, unless they begin with #.
+This command allows you to begin a chatbot session. All (non-command) messages sent in that channel will be considered a prompt for the chatbot, unless they begin with ;.
 
 Here's two examples of how this command can be used:
 ```
@@ -172,12 +182,12 @@ This command makes the bot leave the voice channel it is currently in.
 """
 
 TTS_HELP = f"""
-This command makes the bot speak a message out loud in a discord voice channel. The bot must already be in the voice channel for this command to work.
+This command makes the bot speak a message out loud in a discord voice channel.
 
 Here's two examples of how this command can be used:
 ```
-inkbot: tts Hello there!
-inkbot: tts This text is being read out loud by ink bot.
+inkbot: tts Hello there! This text to speech is worse, but has no limits
+inkbot4: tts Hello there! This text to speech is better, but follows Google's rules and has a usage limit
 ```
 """
 

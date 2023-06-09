@@ -10,21 +10,6 @@ logging.basicConfig(
 	]
 )
 
-# Retrieve API and ID information from values.env
-load_dotenv('values.env')
-DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-openai.api_key = OPENAI_API_KEY
-free_game_ids = int(os.getenv('FREEGAMEID'))
-free_game_channels = [
-	int(os.getenv('CHANNEL1')),
-	int(os.getenv('CHANNEL2')),
-	int(os.getenv('CHANNEL3')),
-	int(os.getenv('CHANNEL4')),
-	int(os.getenv('CHANNEL5')),
-	int(os.getenv('CHANNEL6'))
-]
-
 # Configure bot intents
 intents = discord.Intents.default()
 intents.message_content = True
@@ -68,88 +53,126 @@ async def on_message(message):
 	if message.author.bot:
 		return
 	
-	# Ignore messages that start with #
-	elif message.content.lower().startswith('# '):
+	# Ignore messages that start with ;
+	elif message.content.lower().startswith('; '):
+		return
+		
+	# Random Chance Commands
+	elif message.content.lower().startswith('inkbot: roll'):
+		await dicePost(message)
+		return
+	elif  message.content.lower() == 'inkbot: coinflip':
+		await coinPost(message)
 		return
 	
-	# Random Chance Commands
-	elif message.content.lower().startswith('inkbot: roll') or message.content.lower().startswith('inkbot: dice'):
-		await dicePost(message)
-	elif message.content.lower() == 'inkbot: coin' or message.content.lower() == 'inkbot: coinflip' or message.content.lower() == 'inkbot: flipcoin':
-		await coinPost(message)
-	
 	# Free Game Command
-	elif message.content.lower() == 'send free games' and message.author.id == free_game_ids:
+	elif message.content.lower() == 'inkbot: freebies' and message.author.id == free_game_ids:
 		await freeGamesPost(message, bot, free_game_channels)
+		return
 	
 	# Help Command
 	elif message.content.lower().startswith('inkbot: help'):
 		await helpPost(message)
+		return
 	
-	# Voice Channel Commands
+	# Voice Channel Media Commands
 	elif message.content.lower() == 'inkbot: join':
 		await vcJoin(message)
+		return
 	elif message.content.lower() == 'inkbot: leave':
 		await vcLeave(message)
-	elif message.content.lower().startswith('inkbot: tts'):
-		await bot.change_presence(status=discord.Status.dnd, activity=discord.Game('my voice'))
-		await ttsSpeak(message)
-		await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
+		return
 	elif message.content.lower().startswith('inkbot: play'):
 		await bot.change_presence(status=discord.Status.dnd, activity=discord.Game('with music'))
 		await mediaAdd(message)
 		await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
+		return
 	elif message.content.lower() == 'inkbot: pause':
 		await mediaPause(message)
+		return
 	elif message.content.lower() == 'inkbot: resume':
 		await mediaResume(message)
+		return
 	elif message.content.lower() == 'inkbot: stop':
 		await mediaStop(message)
+		return
 	elif message.content.lower() == 'inkbot: skip':
 		await mediaSkip(message)
+		return
 	elif message.content.lower() == 'inkbot: queue':
 		await mediaQueue(message)
+		return
 	elif message.content.lower().startswith('inkbot: cancel'):
 		await mediaCancel(message)
+		return
+	
+	# Voice Channel Text to Speech Commands
+	elif message.content.lower().startswith('inkbot: tts'):
+		await bot.change_presence(status=discord.Status.dnd, activity=discord.Game('my voice'))
+		await ttsSpeak(message)
+		await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
+		return
+	elif message.content.lower().startswith('inkbot4: tts'):
+		await ttsVoice(message)
+		return
 	
 	# Dall-E Command
 	elif message.content.lower().startswith('inkbot: draw'):
 		await bot.change_presence(status=discord.Status.dnd, activity=discord.Game('with art'))
 		await dallePost(message)
 		await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
+		return
 	
 	# GPT-3 Supplementary Commands
 	elif message.content.lower().startswith('inkbot: forget'):
 		await chatForget(message, "gpt-3.5-turbo")
+		return
 	elif message.content.lower().startswith('inkbot: become'):
 		await chatBecome(message, "gpt-3.5-turbo")
+		return
 	elif message.content.lower().startswith('inkbot: select'):
 		await chatSelect(message, "gpt-3.5-turbo")
+		return
 	elif message.content.lower() == 'inkbot: session start':
 		await chatSession(message, "gpt-3.5-turbo")
+		return
 	elif message.content.lower() == 'inkbot: session stop':
 		await chatSessionEnd(message, "gpt-3.5-turbo")
+		return
 	elif message.content.lower().startswith('inkbot: session modify'):
 		await chatSessionModify(message, "gpt-3.5-turbo")
+		return
+	elif message.content.lower().startswith('inkbot: learn'):
+		await chatLearn(message, "gpt-3.5-turbo")
+		return
 	
 	# GPT-4 Supplementary Commands
 	elif message.content.lower().startswith('inkbot4: forget'):
 		await chatForget(message, "gpt-4")
+		return
 	elif message.content.lower().startswith('inkbot4: become'):
 		await chatBecome(message, "gpt-4")
+		return
 	elif message.content.lower().startswith('inkbot4: select'):
 		await chatSelect(message, "gpt-4")
+		return
 	elif message.content.lower() == 'inkbot4: session start' or message.content.lower() == 'inkbot4: session':
 		await chatSession(message, "gpt-4")
+		return
 	elif message.content.lower() == 'inkbot4: session stop' or message.content.lower() == 'inkbot4: endsession':
 		await chatSessionEnd(message, "gpt-4")
+		return
 	elif message.content.lower().startswith('inkbot4: session modify'):
 		await chatSessionModify(message, "gpt-4")
+		return
+	elif message.content.lower().startswith('inkbot4: learn'):
+		await chatLearn(message, "gpt-4")
+		return
 	
 	# Process Commands if present
 	await bot.process_commands(message)
 	
-	# Ignore malformed commands
+	# Ignore malformed commands so chatbot does not consider them prompts
 	if message.content.lower().startswith('inkbot:'):
 		return
 	elif message.content.lower().startswith('inkbot4:'):
@@ -160,10 +183,12 @@ async def on_message(message):
 		await bot.change_presence(status=discord.Status.dnd, activity=discord.Game('with words'))
 		await chatPost(message, "gpt-3.5-turbo")
 		await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
+		return
 	elif message.content.lower().startswith('inkbot4,') or ((message.channel.id * -1) in chatSessions):
 		await bot.change_presence(status=discord.Status.dnd, activity=discord.Game('with thoughts'))
 		await chatPost(message, "gpt-4")
 		await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="with MultiVAC"))
+		return
 
 # Start bot
 bot.run(DISCORD_TOKEN)
