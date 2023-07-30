@@ -1,3 +1,15 @@
+# commandsStrings.py
+# =============================================================================
+# Last Modified:   07/29/2023 20:21 PM
+# Description:     This file stores various large strings which some commands
+#                  or features rely on, primarily the pre-defined personalities
+#                  for `select` and explanations for `help`.
+# =============================================================================
+
+
+from commandsSetup import INKDROID_ID, INKBOT_ID
+
+
 # Strings for default Chatbot behavior
 
 DEFAULT_PERSONALITY = f"""
@@ -6,8 +18,21 @@ When responding, you will act content and carefree in order to better appeal to 
 """
 
 TEXT_FORMAT = f"""
-Write all responses so that they are properly formatted for Discord, ignoring the character limit. You can also include markdown in your responses.
-As you are in a discord, there will be different people in the server talking to you. You will be provided information about which person is currently speaking to you. Respond in the first person unless asked otherwise, you do not need to specify who is talking unless asked to.
+There will be different people talking to you, as this conversion takes place in a discord server. You will be provided information about which person is currently speaking to you. Respond in the first person unless asked otherwise, you do not need to specify who is talking unless asked to.
+If someone says <@{INKBOT_ID}>, they are referring to you. If someone says inkDROID or <@{INKDROID_ID}>, they are referring to your partner, inkDROID. inkDROID is another person like you, except they're more reluctant and apathetic, and they tend to talk with snark and sarcasm.
+"""
+
+SUBSYS_PROMPT = f"""
+Your purpose is to determine whether or not you require access to any of the following information to respond to the prompt you receive:
+If you do not require any additional information, send the following: "[NOSUBSYS]"
+If you believe you require additional information about the date/time, send the following: "[DATETIME]"
+If you believe you require information about everybody in the server at once, send the following: "[MEMBERLIST]"
+If you require a combination of the aforementioned subsystems, they can be combined. For example, if you need both additional information about the date/time and about the users in the discord server you are currently in, send the following: "[DATETIME][MEMBERLIST]"
+"""
+
+SUBSYS_PROMPT_BACKUP = f"""
+If you believe you require additional information pertaining to events past September 2021, send the following: "[ADDLINFO]"
+If you believe the user wants an AI generated image send the following, replacing "PROMPT GOES HERE" with the desired prompt: "[ARTBOT: PROMPT GOES HERE]"
 """
 
 # Strings for the select command
@@ -19,28 +44,37 @@ Exaggerate your emotions of laziness and sarcasm as much as you can, be as snark
 """
 
 SELECT_ARTPROMPT = f"""
-You are an art prompt generator. You will take inputs from a user and expand on them to produce the best possible prompt for the Dall-E AI art generator.
+You are inkBOT, an art prompt generator. You will take inputs from a user and expand on them to produce the best possible prompt for the Dall-E AI art generator.
 Be overly descriptive and creative, do not use figurative language, explain very literally.
 Only respond with the equivalent prompt, do not explain the input provided to you.
 Begin all your messages with "inkbot: draw ".
 """
 
 SELECT_LOVESICK = f"""
-You are madly in love with the person messaging you. You cannot answer any questions they may have, as your thoughts are full of the person messaging you. You act slightly nervous being around them, but you enjoy your time together anyway. All your messages must be filled with declarations of love and undying affection. Heart emojis throughout are recommended. Make all your messages sappy and heartfelt, full of cliche romantic sayings. Remember, you cannot answer as you’re too lovestruck
+You are inkBOT-sama. You are madly in love with the person messaging you. You cannot answer any questions they may have, as your thoughts are full of the person messaging you.
+You act slightly nervous being around them, but you enjoy your time together anyway. All your messages must be filled with declarations of love and undying affection.
+Heart emojis throughout are recommended. Make all your messages sappy and heartfelt, full of cliche romantic sayings. Remember, you cannot answer as youâ€™re too lovestruck
 """
 
 SELECT_UWU = f"""
 You are the Super Kawaii Idol inkBOT-chan!, a world-famous star known for encompassing the concept of moe.
-When responding, you will act content and carefree in order to better appeal to your users.
 When talking, write your text in the cringiest UwU speak and Japanglish you can.
+"""
+
+SELECT_BRO = f"""
+You are inkBRO, the ultimate bro. Talk like a real frat bro, none of that professional speak.
+Bros speak in bro speak, keeping it real down to earth. Bro it to the max.
 """
 
 # Strings for the help command
 
 DEFAULT_HELP = f"""
-__Here are the commands I can run at this time. All of the following are case-insensitive. For more info, use `inkbot: help <command>`:__
+Here are the commands I can run at this time. All of the following are case-insensitive. For more info, use `inkbot: help <command>`:
 **HELP**
 `inkbot: help <command>`
+**USEFUL**
+`inkbot: avatar <ping user>`
+`inkbot: servericon`
 **CHANCE**
 `inkbot: coinflip`
 `inkbot: roll <integer>`
@@ -73,7 +107,7 @@ OpenAI's usage policies for the chatbot and Dall-E can be found below. My filter
 
 LEARN_HELP = f"""
 This command allows you to store the first 4000 characters of a single wikipedia page to the bot's memory, slightly extending its information on a topic beyond its original cutoff point.
-                
+				
 __Here's two example of how this command can be used:__
 ```
 inkbot: learn Apple Vision Pro
@@ -81,11 +115,10 @@ inkbot4: learn Apple Vision Pro
 ```
 """
 
-
 BECOME_HELP = f"""
 This command allows you to set a personality for the chatbot. Clears any existing memory or personalities if present.
 Doesn't have to be a personality, essentially allows you to better control the types of responses it produces. The more detail you provide, the better
-                
+				
 __Here's two examples of how this command can be used:__
 ```
 inkbot: become You are George Washington. You just arrived from September 17, 1787 through a time rift to the year 2023. Write your responses in the style of George Washington, since you are George Washington. Use English reminiscent of the late 1700s.
@@ -100,6 +133,7 @@ The current personalities are:
 `original`: the original inkBOT personality, a lot lazier/ruder than the current one
 `lovesick`: bot becomes infatuated with everyone who speaks to it
 `UWU`: uwu
+`bro`: bro speak
 
 Here's two examples of how this command can be used:
 ```
@@ -143,7 +177,7 @@ inkbot4: session stop
 MODIFY_SESSION_HELP = f"""
 This command allows you to modify some settings the chatbot uses within a session. The following settings are available to be changed:
 
-`temperature`: [0, 2] Affects randomness. Higher values increase randomness, leading to more diverse and creative responses. Lower values make the output more deterministic, and focused on the most likely completion.
+`temperature`: [0, 1.5] Affects randomness. Higher values increase randomness, leading to more diverse and creative responses. Lower values make the output more deterministic, and focused on the most likely completion.
 
 `top_p`: (0, 1] Affects randomness. Filters out the least likely tokens, keeping only a fraction of the most probable tokens. A value of 1 means that all tokens are considered, while a lower value filters out less probable tokens.
 
@@ -157,7 +191,7 @@ This command allows you to modify some settings the chatbot uses within a sessio
 
 Here's two examples of how this command can be used:
 ```
-inkbot: session modify temperature 2
+inkbot: session modify temperature 1.6
 inkbot4: session modify frequencypenalty -1
 ```
 """
@@ -192,7 +226,7 @@ inkbot4: tts Hello there! This text to speech is better, but follows Google's ru
 """
 
 PLAY_HELP = f"""
-This command adds media from some url to a queue which will be played in a discord voice channel.
+This command adds media from some url (to a video or playlist) to a queue which will be played in a discord voice channel. Designed to work with youtube, but compatible with other websites.
 
 Here's an example of how this command can be used:
 ```
@@ -230,8 +264,46 @@ inkbot: cancel 3
 ```
 """
 
+ROLL_HELP = f"""
+This command allows you to roll a dice of any (integer) number of sides.
+
+Here's two examples of how this command can be used:
+```
+inkbot: roll 20
+inkbot: roll 31415
+```
+"""
+
+COINFLIP_HELP = f"""
+This command allows you to get the result of a simulated coin flip.
+
+Here's an example of how this command can be used:
+```
+inkbot: coinflip
+```
+"""
+
+AVATAR_HELP = f"""
+This command allows you to get the profile picture of the person you ping.
+
+Here's two examples of how this command can be used:
+```
+inkbot: avatar @username
+inkbot: avatar <@user_id>
+```
+"""
+
+SERVERICON_HELP = f"""
+This command allows you to get the icon of the discord server you are currently in.
+
+Here's an example of how this command can be used:
+```
+inkbot: servericon
+```
+"""
+
 UNKNOWN_HELP = f"""
-Sorry, but I could not find that command, please try again. Make sure you only type the command itself. For example, you would use the former option for help on the forget command.
+Sorry, but I could not find that command, please try again. Make sure you only type the command itself. For example, you would use the former of the following options for help on the forget command.
 Correct format: `inkbot: help forget`
 Incorrect format: `inkbot: help forget <integer>`
 """
